@@ -1,4 +1,4 @@
-package com.chat4osu;
+package com.chat4osu.osu;
 
 import java.util.ArrayList;
 import java.util.Arrays;
