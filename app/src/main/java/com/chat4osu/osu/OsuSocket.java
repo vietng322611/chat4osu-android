@@ -6,9 +6,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.Socket;
-import java.net.SocketException;
 import java.net.SocketTimeoutException;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -16,9 +14,7 @@ import java.util.concurrent.Executors;
 
 public class OsuSocket {
     public Manager manager;
-    public List<String> stackTrace = new ArrayList<String>(); // Where's my logger huuhuhuhuhuhuhuhuhuhu
-    private final String host = "irc.ppy.sh";
-    private final int port = 6667;
+    public List<String> stackTrace = new ArrayList<>(); // Where's my logger huuhuhuhuhuhuhuhuhuhu
     private Socket socket;
     private BufferedReader IStream;
     private BufferedWriter OStream;
@@ -31,7 +27,7 @@ public class OsuSocket {
     public void connect(String nick, String pass) throws Exception {
         retryCount++;
         try {
-            socket = new Socket(host, port);
+            socket = new Socket("irc.ppy.sh", 6667);
             socket.setKeepAlive(true);
         } catch (SocketTimeoutException e) {
             Thread.sleep(1000);
