@@ -1,13 +1,10 @@
 package com.chat4osu.osu
 
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class AppSocket {
     private var osuSocket = OsuSocket()
-    var a = 0
 
     suspend fun connect(nick: String, pass: String): Int {
         return withContext(Dispatchers.IO) {
