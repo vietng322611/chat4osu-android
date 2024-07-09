@@ -11,31 +11,35 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 
 public class OsuSocket {
     public Manager manager;
-    public List<String> stackTrace = new ArrayList<>(); // Where's my logger huuhuhuhuhuhuhuhuhuhu
+
     private Socket socket;
     private BufferedReader IStream;
     private BufferedWriter OStream;
-    private final ExecutorService executor = Executors.newCachedThreadPool();
     private int retryCount = 0;
+
+    private final ExecutorService executor = Executors.newCachedThreadPool();
+
+    public List<String> stackTrace = new ArrayList<>(); // Where's my logger huuhuhuhuhuhuhuhuhuhu
 
     public OsuSocket() {
     }
 
-    public void connect(String nick, String pass) throws Exception {
+    public int connect(String nick, String pass) throws InterruptedException {
         retryCount++;
         try {
             socket = new Socket("irc.ppy.sh", 6667);
             socket.setKeepAlive(true);
         } catch (SocketTimeoutException e) {
             Thread.sleep(1000);
-            if (retryCount > 10) {
+            if (retryCount > 5) {
                 stackTrace.add("Connection timed out");
+                return 2;
             }
-            connect(nick, pass);
-            return;
+            return connect(nick, pass);
         } catch (IOException e) {
             stackTrace.add(e.getMessage());
         }
@@ -57,7 +61,7 @@ public class OsuSocket {
                 switch (response[1]) {
                     case "464":
                         stackTrace.add("Wrong password or username");
-                        return;
+                        return 1;
                     case "376":
                         status = true;
                         break;
@@ -66,9 +70,17 @@ public class OsuSocket {
             }
 
             manager = new Manager(nick);
-            executor.submit(this::recv);
+            try {
+                executor.submit(this::recv);
+            } catch (RejectedExecutionException e) {
+                stackTrace.add(e.getMessage());
+                return 3;
+            }
+
+            return 0;
         } catch (IOException e) {
             stackTrace.add(e.getMessage());
+            return 3;
         }
     }
 

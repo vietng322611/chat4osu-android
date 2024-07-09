@@ -38,16 +38,16 @@ class LoginViewModel @Inject constructor() : ViewModel() {
 
         viewModelScope.launch {
             if (isValidUsername(trimmedUsername) && trimmedPassword != "") {
-                AppModule.socket.connect(username, password)
-
-                val error: String = AppModule.socket.collect()
+                val code: Int = AppModule.socket.connect(username, password)
 
                 _loadingState.value = UILoadingState.NotLoading
 
-                if (error == "") {
+                if (code == 0) {
                     _loginEvent.emit(LoginEvent.Success)
                 } else {
-                    _loginEvent.emit(LoginEvent.ErrorLogin(error))
+                    _loginEvent.emit(
+                        LoginEvent.ErrorLogin(AppModule.socket.collect())
+                    )
                 }
             } else {
                 _loadingState.value = UILoadingState.NotLoading

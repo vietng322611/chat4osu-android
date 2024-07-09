@@ -3,12 +3,14 @@ package com.chat4osu.osu
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class AppSocket {
     private var osuSocket = OsuSocket()
+    var a = 0
 
-    fun connect(nick: String, pass: String) {
-        CoroutineScope(Dispatchers.IO).launch {
+    suspend fun connect(nick: String, pass: String): Int {
+        return withContext(Dispatchers.IO) {
             osuSocket.connect(nick, pass)
         }
     }
