@@ -71,14 +71,18 @@ class LoginActivity : ComponentActivity() {
         var showProgress: Boolean by remember {
             mutableStateOf(false)
         }
-        loginViewModel.loadingState.observe(this, Observer {
-            uiLoadingState ->
-            showProgress = when (uiLoadingState) {
-                is LoginViewModel.UILoadingState.Loading -> { true }
 
-                is LoginViewModel.UILoadingState.NotLoading -> { false }
+        loginViewModel.loadingState.observe(this) { uiLoadingState ->
+            showProgress = when (uiLoadingState) {
+                is LoginViewModel.UILoadingState.Loading -> {
+                    true
+                }
+
+                is LoginViewModel.UILoadingState.NotLoading -> {
+                    false
+                }
             }
-        })
+        }
 
         ConstraintLayout(
             modifier = Modifier
@@ -99,7 +103,7 @@ class LoginActivity : ComponentActivity() {
                     .constrainAs(logo) {
                         start.linkTo(parent.start)
                         end.linkTo(parent.end)
-                        top.linkTo(parent.top, margin = 100.dp)
+                        top.linkTo(parent.top, margin = 120.dp)
                     }
             )
 
