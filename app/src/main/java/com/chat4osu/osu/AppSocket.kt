@@ -22,14 +22,14 @@ class AppSocket {
 
     fun part(channelName: String) { osuSocket.part(channelName) }
 
-    fun getMessage(channelName: String): MutableList<String>? {
+    fun getMessage(channelName: String?): List<String>? {
         val channel = osuSocket.manager.getChannel(channelName)
 
         if (channel != null) { return channel.getMessage() }
         else { return null }
     }
 
-    fun getUser(channelName: String): MutableSet<String>? {
+    fun getUser(channelName: String): Set<String>? {
         val channel = osuSocket.manager.getChannel(channelName)
 
         if (channel != null) { return channel.user }
