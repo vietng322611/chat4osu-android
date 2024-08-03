@@ -11,6 +11,7 @@ pluginManagement {
         gradlePluginPortal()
     }
 }
+@Suppress("UnstableApiUsage")
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
@@ -20,4 +21,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "chat4osu"
-include(":app")
+include(":chat4osu")
