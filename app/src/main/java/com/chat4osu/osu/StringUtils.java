@@ -2,6 +2,8 @@ package com.chat4osu.osu;
 
 import android.annotation.SuppressLint;
 
+import com.chat4osu.osu.Exception.NoSuchChannel;
+
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -12,12 +14,6 @@ import java.util.List;
  * :cho.ppy.sh 353 [nick] = [channel_name] :[name_list]
  * :[name]!cho@ppy.sh PRIVMSG [channel_name] :[message]
  */
-
-class NoSuchChannel extends Exception {
-    public NoSuchChannel(String message) {
-        super(message);
-    }
-}
 
 public class StringUtils {
     public static List<String> parse(String message) throws NoSuchChannel {
