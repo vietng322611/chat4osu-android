@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -89,7 +90,8 @@ class ChatActivity: ComponentActivity() {
             modifier = Modifier
                 .nestedScroll(scrollTopBar.nestedScrollConnection)
                 .fillMaxSize()
-                .clickable { focusManager.clearFocus() },
+                .clickable { focusManager.clearFocus() }
+                .imePadding(),
             topBar = {
                 TopAppBar(
                     title = {
@@ -155,28 +157,26 @@ class ChatActivity: ComponentActivity() {
                     },
                     scrollBehavior = scrollBottomBar
                 )
-            },
-            content = {
-                innerPadding -> LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding)
-                        .padding(8.dp),
-                    verticalArrangement = Arrangement.Bottom
-                ) {
-                    items(messages) { text ->
-                        SelectionContainer {
-                            Text(
-                                text = text,
-                                fontSize = 15.sp,
-                                maxLines = Int.MAX_VALUE,
-                                overflow = TextOverflow.Visible,
-                            )
-                        }
-                    }
+            }
+        ) { innerPadding -> LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(8.dp),
+            verticalArrangement = Arrangement.Bottom
+        ) {
+            items(messages) { text ->
+                SelectionContainer {
+                    Text(
+                        text = text,
+                        fontSize = 15.sp,
+                        maxLines = Int.MAX_VALUE,
+                        overflow = TextOverflow.Visible,
+                    )
                 }
             }
-        )
+        }
+        }
     }
 
     private fun navigateToSelect() {
