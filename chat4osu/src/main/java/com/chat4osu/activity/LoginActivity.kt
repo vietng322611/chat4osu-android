@@ -24,6 +24,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -71,6 +72,8 @@ class LoginActivity : ComponentActivity() {
             mutableStateOf(false)
         }
 
+        val uriHandler = LocalUriHandler.current
+
         loginVM.loadingState.observe(this) { uiLoadingState ->
             showProgress = when (uiLoadingState) {
                 is LoginViewModel.UILoadingState.Loading -> {
@@ -90,7 +93,7 @@ class LoginActivity : ComponentActivity() {
         ) {
 
             val(
-                logo, usernameTextField, passwordTextField, btnLogin, progressBar
+                logo, usernameTextField, passwordTextField, loginBtn, getPassBtn, progressBar
             ) = createRefs()
 
             Image(
@@ -141,7 +144,7 @@ class LoginActivity : ComponentActivity() {
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .constrainAs(btnLogin) {
+                    .constrainAs(loginBtn) {
                         start.linkTo(parent.start)
                         end.linkTo(parent.end)
                         top.linkTo(passwordTextField.bottom, margin = 32.dp)
@@ -150,12 +153,27 @@ class LoginActivity : ComponentActivity() {
                 Text(text = "Login")
             }
 
+            Button(
+                onClick = {
+                    uriHandler.openUri("https://osu.ppy.sh/home/account/edit#legacy-api")
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .constrainAs(getPassBtn) {
+                        start.linkTo(parent.start)
+                        end.linkTo(parent.end)
+                        top.linkTo(loginBtn.bottom, margin = 16.dp)
+                    }
+            ) {
+                Text(text = "Get IRC password")
+            }
+
             if (showProgress) {
                 CircularProgressIndicator(
                     modifier = Modifier.constrainAs(progressBar) {
                         start.linkTo(parent.start)
                         end.linkTo(parent.end)
-                        top.linkTo(btnLogin.bottom, margin = 16.dp)
+                        top.linkTo(getPassBtn.bottom, margin = 16.dp)
                     }
                 )
             }
