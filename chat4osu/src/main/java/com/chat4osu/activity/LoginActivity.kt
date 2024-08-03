@@ -48,9 +48,7 @@ class LoginActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-
         subscribeToEvents()
-
         setContent {
             Chat4osuTheme {
                 LoginScreen()
