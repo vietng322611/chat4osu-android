@@ -7,6 +7,7 @@
     <application
         android:name=".MainApp"
         android:allowBackup="true"
+        android:windowSoftInputMode="adjustPan"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
@@ -22,6 +23,11 @@
             android:theme="@style/Theme.Chat4osu" />
         <activity
             android:name=".activity.ChatActivity"
+            android:exported="false"
+            android:label="@string/title_activity_chat"
+            android:theme="@style/Theme.Chat4osu" />
+        <activity
+            android:name=".activity.SelectActivity"
             android:exported="false"
             android:label="@string/title_activity_chat"
             android:theme="@style/Theme.Chat4osu" />
