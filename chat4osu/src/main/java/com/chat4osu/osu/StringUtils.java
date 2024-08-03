@@ -17,8 +17,6 @@ import java.util.List;
 
 public class StringUtils {
     public static List<String> parse(String message) throws NoSuchChannel {
-        if (message.startsWith("PING")) return null;
-
         List<String> data = Arrays.asList(message.split(":"));
         String[] mData = data.get(1).split(" ");
 

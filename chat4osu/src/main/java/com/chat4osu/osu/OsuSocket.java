@@ -97,25 +97,24 @@ public class OsuSocket {
     }
 
     public void recv() {
-        String msg;
-        while (!socket.isInputShutdown()) {
+        scheduler.scheduleWithFixedDelay(() -> {
             try {
-                msg = IStream.readLine();
+                String msg = IStream.readLine();
                 if (msg != null) {
-                    if (!msg.contains("QUIT")) Log.d("OsuSocket","recv: " + msg);
+                    if (!msg.contains("QUIT")) Log.d("OsuSocket", "recv: " + msg);
 
-                    if (msg.equals("PING cho.ppy.sh")) { send(msg); continue; }
+                    if (msg.equals("PING cho.ppy.sh")) {
+                        send(msg);
+                    }
 
                     List<String> parsedMessage = StringUtils.parse(msg);
                     manager.update(parsedMessage);
-                } else {
-                    Thread.sleep(100);
                 }
-            } catch (IOException | InterruptedException | NoSuchChannel e) {
+            } catch (IOException | NoSuchChannel e) {
                 stackTrace.add(e.getMessage());
                 Log.e("OsuSocket", "recv: " + e.getMessage());
             }
-        }
+        }, 0, 100, TimeUnit.MILLISECONDS);
     }
 
     public void send(String message) {
