@@ -10,7 +10,7 @@ android {
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "chat4osu"
+        applicationId = "com.chat4osu"
         minSdk = 21
         targetSdk = 34
         versionCode = 1
@@ -47,13 +47,6 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
-        }
-    }
-    applicationVariants.all {
-        val variant = this
-        variant.outputs.all {
-            val output = this as com.android.build.gradle.api.ApkVariantOutput
-            output.outputFileName = "${variant.name}-${variant.versionName}.apk"
         }
     }
 }
