@@ -21,7 +21,7 @@ class ChatViewModel @Inject constructor() : ViewModel() {
 
     val activeChat: String = AppModule.socket.getActiveChat()
 
-    private var stopReadMsg = false;
+    private var stopReadMsg = false
 
     init { readMsg() }
 
