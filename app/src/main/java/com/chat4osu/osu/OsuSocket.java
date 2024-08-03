@@ -2,6 +2,8 @@ package com.chat4osu.osu;
 
 import android.util.Log;
 
+import com.chat4osu.osu.Exception.NoSuchChannel;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
