@@ -42,7 +42,7 @@ import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class LoginActivity : ComponentActivity() {
-    private val loginViewModel: LoginViewModel by viewModels()
+    private val loginVM: LoginViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -71,7 +71,7 @@ class LoginActivity : ComponentActivity() {
             mutableStateOf(false)
         }
 
-        loginViewModel.loadingState.observe(this) { uiLoadingState ->
+        loginVM.loadingState.observe(this) { uiLoadingState ->
             showProgress = when (uiLoadingState) {
                 is LoginViewModel.UILoadingState.Loading -> {
                     true
@@ -137,7 +137,7 @@ class LoginActivity : ComponentActivity() {
 
             Button(
                 onClick = {
-                    loginViewModel.login(username.text, password.text)
+                    loginVM.login(username.text, password.text)
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -165,7 +165,7 @@ class LoginActivity : ComponentActivity() {
     private fun subscribeToEvents() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                loginViewModel.loginEvent.collect {
+                loginVM.loginEvent.collect {
                     event -> when(event) {
                         is LoginViewModel.LoginEvent.ErrorInvalidInput -> {
                             showToast("Invalid username/password.")
@@ -179,7 +179,7 @@ class LoginActivity : ComponentActivity() {
                         is LoginViewModel.LoginEvent.Success -> {
                             showToast("Login Successful.")
 
-                            navigateToChat()
+                            navigateToSelect()
                         }
                     }
                 }
@@ -187,9 +187,10 @@ class LoginActivity : ComponentActivity() {
         }
     }
 
-    private fun navigateToChat() {
-        val intent = Intent(this, ChatActivity::class.java)
+    private fun navigateToSelect() {
+        val intent = Intent(this, SelectActivity::class.java)
         startActivity(intent)
+        finish()
     }
 
     private fun showToast(msg: String) {
