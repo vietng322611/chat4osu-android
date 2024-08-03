@@ -11,7 +11,7 @@ android {
 
     defaultConfig {
         applicationId = "com.chat4osu"
-        minSdk = 21
+        minSdk = 25
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
@@ -69,6 +69,7 @@ dependencies {
     // Dagger - HILT
     implementation(libs.hilt.android)
     implementation(libs.androidx.runtime.livedata)
+    implementation(libs.androidx.compose.material)
     kapt(libs.hilt.compiler)
 
     testImplementation(libs.junit)
