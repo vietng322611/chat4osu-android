@@ -128,6 +128,5 @@ class SelectActivity: ComponentActivity() {
     private fun navigateToChat() {
         val intent = Intent(this, ChatActivity::class.java)
         startActivity(intent)
-        finish()
     }
 }
