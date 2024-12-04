@@ -12,6 +12,7 @@ android {
     defaultConfig {
         applicationId = "com.chat4osu"
         minSdk = 25
+        //noinspection OldTargetApi
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
@@ -65,6 +66,7 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.constraintlayout.compose)
     implementation(libs.androidx.appcompat)
+    implementation(libs.androidx.material.icons.extended)
 
     // Dagger - HILT
     implementation(libs.hilt.android)

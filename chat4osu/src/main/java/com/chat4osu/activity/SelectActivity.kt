@@ -2,48 +2,63 @@ package com.chat4osu.activity
 
 import android.content.Intent
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.SaveAs
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FabPosition
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxState
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.wear.compose.material.ExperimentalWearMaterialApi
-import androidx.wear.compose.material.FractionalThreshold
-import androidx.wear.compose.material.rememberSwipeableState
-import androidx.wear.compose.material.swipeable
-import com.chat4osu.di.AppModule
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.chat4osu.SocketData
 import com.chat4osu.ui.theme.Chat4osuTheme
+import com.chat4osu.viewmodel.SelectViewModel
 import dagger.hilt.android.AndroidEntryPoint
-import kotlin.math.roundToInt
 
 @AndroidEntryPoint
 class SelectActivity: ComponentActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -54,11 +69,47 @@ class SelectActivity: ComponentActivity() {
         }
     }
 
+    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun ChatSelectScreen() {
+        val selectVM: SelectViewModel = viewModel()
+
+        val chatList by selectVM.chatList
+
         var showDialog by remember { mutableStateOf(false) }
 
+        BackHandler { navigateToActivity(LoginActivity()) }
+
         Scaffold (
+            topBar = {
+                CenterAlignedTopAppBar(
+                    modifier = Modifier.drawBehind {
+                        drawLine(
+                            color = Color.Black,
+                            start = Offset(0f, size.height),
+                            end = Offset(size.width, size.height),
+                            strokeWidth = 4f
+                        )
+                    },
+                    title = {
+                        Text(
+                            "Select channel",
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = {
+                            navigateToActivity(LoginActivity())
+                        }) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back"
+                            )
+                        }
+                    }
+                )
+            },
             floatingActionButton = {
                 FloatingActionButton(
                     onClick = { showDialog = true },
@@ -69,13 +120,21 @@ class SelectActivity: ComponentActivity() {
             floatingActionButtonPosition = FabPosition.End,
 
             content = {
-                innerPadding -> Column (
-                    modifier = Modifier.padding(innerPadding)
+                innerPadding -> LazyColumn(
+                    modifier = Modifier
+                        .padding(innerPadding)
+                        .fillMaxSize(),
+                    contentPadding = PaddingValues(vertical = 12.dp)
                 ) {
-                    AppModule.socket.getAllChat().let {
-                        for (name: String in it) {
-                            SwipeableButton(name = name)
-                        }
+                    itemsIndexed(
+                        chatList,
+                        key = { _, item -> item.hashCode() }
+                    ) { _, name ->
+                        SwipeButton(
+                            name = name,
+                            onRemove = SocketData::removeChat,
+                            onArchive = SocketData::archiveChat
+                        )
                     }
                 }
             }
@@ -85,55 +144,86 @@ class SelectActivity: ComponentActivity() {
             ShowDialog(
                 onDismiss = { showDialog = false },
                 onSubmit = { input ->
-                    AppModule.socket.readInput("/join $input")
-                    navigateToChat()
+                    SocketData.readInput("/join $input")
+                    navigateToActivity(ChatActivity())
                 }
             )
         }
     }
 
-    @OptIn(ExperimentalWearMaterialApi::class)
+    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
-    fun SwipeableButton(name: String) {
-        val squareSize = 56.dp
+    fun DismissBackground(dismissState: SwipeToDismissBoxState) {
+        val state = when (dismissState.dismissDirection) {
+            SwipeToDismissBoxValue.StartToEnd -> true
+            SwipeToDismissBoxValue.EndToStart -> false
+            SwipeToDismissBoxValue.Settled -> null
+        }
 
-        val swipeState = rememberSwipeableState(0)
-        val sizePx = with(LocalDensity.current) { squareSize.toPx() }
-        val anchors = mapOf(0f to 0, sizePx*2 to 1)
-
-        Box(
+        Row(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-                .swipeable(
-                    state = swipeState,
-                    anchors = anchors,
-                    thresholds = { _, _ -> FractionalThreshold(0.3f) },
-                    orientation = Orientation.Horizontal
-                )
+                .fillMaxSize()
+                .padding(16.dp, 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Button(
-                onClick = {
-                    AppModule.socket.setActiveChat(name)
-                    navigateToChat()
-                },
-                modifier = Modifier
-                    .offset { IntOffset(swipeState.offset.value.roundToInt(), 0) }
-                    .fillMaxWidth()
-                    .padding(5.dp)
-            ) {
-                Text(text = name)
+            if (state == true) {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = "Delete"
+                )
             }
-
-            if (swipeState.currentValue == 1) {
-                IconButton(onClick = { /* do something */ }) {
-                    Icon(
-                        imageVector = Icons.Filled.Clear,
-                        contentDescription = "Delete chat"
-                    )
-                }
+            Spacer(modifier = Modifier)
+            if (state == false) {
+                Icon(
+                    Icons.Default.SaveAs,
+                    contentDescription = "Save chat log"
+                )
             }
         }
+    }
+
+    @OptIn(ExperimentalMaterial3Api::class)
+    @Composable
+    fun SwipeButton(
+        name: String,
+        onRemove: (String) -> Unit,
+        onArchive: (String) -> String
+    ) {
+        val context = LocalContext.current
+        val dismissState = rememberSwipeToDismissBoxState(
+            confirmValueChange = {
+                when (it) {
+                    SwipeToDismissBoxValue.StartToEnd -> {
+                        onRemove(name)
+                        Toast.makeText(context, "Chat Deleted: $name", Toast.LENGTH_SHORT).show()
+                    }
+                    SwipeToDismissBoxValue.EndToStart -> {
+                        val path: String = onArchive(name)
+                        Toast.makeText(context, "Chat log saved at: $path", Toast.LENGTH_SHORT).show()
+                    }
+                    SwipeToDismissBoxValue.Settled -> return@rememberSwipeToDismissBoxState false
+                }
+                return@rememberSwipeToDismissBoxState true
+            },
+            positionalThreshold = { it * .4f }
+        )
+        SwipeToDismissBox(
+            state = dismissState,
+            modifier = Modifier.padding(5.dp),
+            backgroundContent = { DismissBackground(dismissState) },
+            content = {
+                Button(
+                    modifier = Modifier.fillMaxSize(),
+                    onClick = {
+                        SocketData.setActiveChat(name)
+                        navigateToActivity(ChatActivity())
+                    }
+                ) {
+                    Text(text = name)
+                }
+            }
+        )
     }
 
     @Composable
@@ -171,8 +261,9 @@ class SelectActivity: ComponentActivity() {
         )
     }
 
-    private fun navigateToChat() {
-        val intent = Intent(this, ChatActivity::class.java)
+    private fun navigateToActivity(activity: ComponentActivity) {
+        val intent = Intent(this, activity::class.java)
         startActivity(intent)
+        finish()
     }
 }

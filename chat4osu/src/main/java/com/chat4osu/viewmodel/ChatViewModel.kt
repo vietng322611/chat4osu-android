@@ -4,7 +4,7 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.chat4osu.di.AppModule
+import com.chat4osu.SocketData
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -14,16 +14,20 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ChatViewModel @Inject constructor() : ViewModel() {
+
     private val mutex = Mutex()
 
     private var _messages = mutableStateOf(listOf<String>())
     val messages: State<List<String>> get() = _messages
 
-    val activeChat: String = AppModule.socket.getActiveChat()
+    private var _users = mutableStateOf(listOf<String>())
+    val users: State<List<String>> get() = _users
 
-    private var stopReadMsg = false
+    val activeChat: String = SocketData.getActiveChat()
 
-    init { readMsg() }
+    private var _stopTracking = mutableStateOf(false)
+
+    init { trackChatData() }
 
     fun addMsg(msg: String) {
         viewModelScope.launch {
@@ -34,14 +38,17 @@ class ChatViewModel @Inject constructor() : ViewModel() {
     }
 
     fun saveMsg() {
-        stopReadMsg = true
-        AppModule.socket.saveMsg(_messages.value)
+        _stopTracking.value = true
+        SocketData.saveMsg(_messages.value)
     }
 
-    private fun readMsg() {
+    fun getUserList() { _users.value = SocketData.getUser("") }
+
+    private fun trackChatData() {
         viewModelScope.launch {
-            while (!stopReadMsg) {
-                _messages.value += AppModule.socket.getMessage(activeChat)
+            while (!_stopTracking.value) {
+                _messages.value += SocketData.getMessage("")
+
                 delay(100)
             }
         }

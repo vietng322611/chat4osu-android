@@ -4,7 +4,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.chat4osu.di.AppModule
+import com.chat4osu.SocketData
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -31,7 +31,7 @@ class LoginViewModel @Inject constructor() : ViewModel() {
 
         viewModelScope.launch {
             if (isValidUsername(trimmedUsername) && trimmedPassword != "") {
-                val code: Int = AppModule.socket.connect(username, password)
+                val code: Int = SocketData.connect(username, password)
 
                 _loadingState.value = UILoadingState.NotLoading
 
@@ -39,7 +39,7 @@ class LoginViewModel @Inject constructor() : ViewModel() {
                     _loginEvent.emit(LoginEvent.Success)
                 } else {
                     _loginEvent.emit(
-                        LoginEvent.ErrorLogin(AppModule.socket.collect())
+                        LoginEvent.ErrorLogin(SocketData.collect())
                     )
                 }
             } else {

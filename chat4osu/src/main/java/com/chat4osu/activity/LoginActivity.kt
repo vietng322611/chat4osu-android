@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
@@ -58,6 +59,9 @@ class LoginActivity : ComponentActivity() {
 
     @Composable
     fun LoginScreen() {
+
+        BackHandler { finish() }
+
         var username by remember {
             mutableStateOf(TextFieldValue(""))
         }

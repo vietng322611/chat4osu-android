@@ -1,5 +1,5 @@
 [versions]
-agp = "8.5.1"
+agp = "8.5.2"
 constraintlayoutCompose = "1.0.1"
 hiltAndroidGradlePlugin = "2.48.1"
 kotlin = "1.9.0"
@@ -19,6 +19,7 @@ androidx-constraintlayout-compose = { module = "androidx.constraintlayout:constr
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-lifecycle-livedata-ktx = { module = "androidx.lifecycle:lifecycle-livedata-ktx", version.ref = "lifecycleRuntimeKtx" }
 androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose" }
+androidx-material-icons-extended = { module = "androidx.compose.material:material-icons-extended" }
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hiltAndroidGradlePlugin" }
 hilt-android-gradle-plugin = { module = "com.google.dagger:hilt-android-gradle-plugin", version.ref = "hiltAndroidGradlePlugin" }
 hilt-compiler = { module = "com.google.dagger:hilt-compiler", version.ref = "hiltAndroidGradlePlugin" }
