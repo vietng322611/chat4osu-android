@@ -13,14 +13,14 @@ import java.util.List;
  */
 
 public class StringUtils {
-
     public static List<String> parse(String message) throws NoSuchChannel {
-        List<String> data = Arrays.asList(message.split(":"));
+        List<String> data = Arrays.asList(message.split(":")),
+                     retData = new ArrayList<>();
+
         String[] mData = data.get(1).split(" ");
 
-        if (mData[1].equals("QUIT")) return null;
+        if (mData[1].equals("QUIT")) return retData;
 
-        List<String> retData = new ArrayList<>();
         switch (mData[1]) {
             case "401":
             case "403":
