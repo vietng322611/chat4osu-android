@@ -20,7 +20,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class OsuSocket {
-
     public Manager manager;
 
     private Socket socket;
@@ -184,7 +183,9 @@ public class OsuSocket {
     }
 
     public void part(String name) {
-        if (manager.getChannel(name) != null)
+        if (manager.getChannel(name) != null) {
             send("PART " + name);
+            manager.removeChat(name);
+        }
     }
 }

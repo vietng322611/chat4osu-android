@@ -9,6 +9,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -24,6 +26,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
@@ -50,6 +53,7 @@ class LoginActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         subscribeToEvents()
+
         setContent {
             Chat4osuTheme {
                 LoginScreen()
@@ -70,9 +74,15 @@ class LoginActivity : ComponentActivity() {
             mutableStateOf(TextFieldValue(""))
         }
 
-        var showProgress: Boolean by remember {
-            mutableStateOf(false)
+        var checked by remember { mutableStateOf(false) }
+
+        loginVM.loadCredential()?.let {
+            username = TextFieldValue(it[0])
+            password = TextFieldValue(it[1])
+            checked = true
         }
+
+        var showProgress by remember { mutableStateOf(false) }
 
         val uriHandler = LocalUriHandler.current
 
@@ -94,8 +104,8 @@ class LoginActivity : ComponentActivity() {
                 .padding(start = 35.dp, end = 35.dp)
         ) {
 
-            val(
-                logo, usernameTextField, passwordTextField, loginBtn, getPassBtn, progressBar
+            val (
+                logo, usernameTextField, passwordTextField, checkBox, loginBtn, getPassBtn, progressBar
             ) = createRefs()
 
             Image(
@@ -140,16 +150,33 @@ class LoginActivity : ComponentActivity() {
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
             )
 
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .constrainAs(checkBox) {
+                        start.linkTo(parent.start)
+                        end.linkTo(parent.end)
+                        top.linkTo(passwordTextField.bottom, margin = 8.dp)
+                    }
+            ) {
+                Checkbox(
+                    checked = checked,
+                    onCheckedChange = { checked = it }
+                )
+                Text("Save credentials")
+            }
+
             Button(
                 onClick = {
-                    loginVM.login(username.text, password.text)
+                    loginVM.login(username.text, password.text, checked)
                 },
                 modifier = Modifier
                     .fillMaxWidth()
                     .constrainAs(loginBtn) {
                         start.linkTo(parent.start)
                         end.linkTo(parent.end)
-                        top.linkTo(passwordTextField.bottom, margin = 32.dp)
+                        top.linkTo(checkBox.bottom, margin = 16.dp)
                     }
             ) {
                 Text(text = "Login")
@@ -185,15 +212,20 @@ class LoginActivity : ComponentActivity() {
     private fun subscribeToEvents() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                loginVM.loginEvent.collect {
-                    event -> when(event) {
+                loginVM.loginEvent.collect { event ->
+                    when (event) {
                         is LoginViewModel.LoginEvent.ErrorInvalidInput -> {
                             showToast("Invalid username/password.")
                         }
 
+                        is LoginViewModel.LoginEvent.ErrorSavingCredential -> {
+                            val errorMessage = event.error
+                            showToast("Couldn't saved credential. Error: $errorMessage")
+                        }
+
                         is LoginViewModel.LoginEvent.ErrorLogin -> {
                             val errorMessage = event.error
-                            showToast("Error: ${errorMessage}.")
+                            showToast("Error: $errorMessage.")
                         }
 
                         is LoginViewModel.LoginEvent.Success -> {

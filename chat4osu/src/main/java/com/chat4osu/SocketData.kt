@@ -115,14 +115,16 @@ class SocketData {
                 Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
             val file = File(folder, "$name.log")
 
-            val data = getMessage("")
+            val data = getMessage(name)
             var fos: FileOutputStream? = null
 
             try {
                 fos = FileOutputStream(file)
 
-                for (msg in data)
-                    fos.write(msg.toByteArray())
+                for (msg in data) {
+                    val s = msg + '\n'
+                    fos.write(s.toByteArray())
+                }
 
                 fos.flush()
                 fos.close()
@@ -138,12 +140,12 @@ class SocketData {
                 }
             }
 
-            osuSocket.manager.removeChat(name)
+            removeChat(name)
             return "$folder/$name.log"
         }
 
         fun removeChat(name: String) {
-            osuSocket.manager.removeChat(name)
+            osuSocket.part(name)
         }
     }
 }
