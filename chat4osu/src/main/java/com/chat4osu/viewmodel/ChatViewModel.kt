@@ -10,11 +10,13 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import java.text.SimpleDateFormat
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 import javax.inject.Inject
 
 @HiltViewModel
 class ChatViewModel @Inject constructor() : ViewModel() {
-
     private val mutex = Mutex()
 
     private var _messages = mutableStateOf(listOf<String>())
@@ -30,9 +32,10 @@ class ChatViewModel @Inject constructor() : ViewModel() {
     init { trackChatData() }
 
     fun addMsg(msg: String) {
+        val timeStamp = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(System.currentTimeMillis())
         viewModelScope.launch {
             mutex.withLock {
-                _messages.value += msg
+                _messages.value += "[$timeStamp] $msg"
             }
         }
     }

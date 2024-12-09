@@ -61,7 +61,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.FontWeight.Companion.W400
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
@@ -79,8 +79,6 @@ import com.chat4osu.viewmodel.ChatViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.Date
 
 @AndroidEntryPoint
 class ChatActivity: ComponentActivity() {
@@ -300,19 +298,16 @@ class ChatActivity: ComponentActivity() {
 
     @SuppressLint("SimpleDateFormat")
     private fun buildString(text: String): AnnotatedString {
-        val formatter = SimpleDateFormat("HH:mm:ss")
         val textList = text.split(" ").toMutableList()
-        val color: Color
-        val name: String = textList[0].replace(":", "")
-        textList[0] = ""
-        color = if (name == username) LightBlue else CyanWhite
+        val name: String = textList[1].replace(":", "")
+        val color = if (name == username) LightBlue else CyanWhite
 
         return buildAnnotatedString {
-            append("[${formatter.format(Date())}] ")
-            withStyle(style = SpanStyle(color = color, fontWeight = FontWeight.Bold)) {
-                append("$name: ")
+            append(textList[0])
+            withStyle(style = SpanStyle(color = color, fontWeight = W400)) {
+                append(" $name: ")
             }
-            append(textList.joinToString(" "))
+            append(textList.subList(2, textList.size).joinToString(" "))
         }
     }
 

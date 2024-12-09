@@ -1,8 +1,11 @@
 package osuIRC.Backend;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -36,7 +39,7 @@ public class Channel {
     }
 
     public void updateMessage(List<String> data) {
-        String message = String.format("%s: %s", data.get(2), data.get(3));
+        String message = String.format("[%s] %s: %s", getCurrentTimeStamp(), data.get(2), data.get(3));
         messageList.add(message);
 
         Matcher matcher = join.matcher(message);
@@ -55,4 +58,10 @@ public class Channel {
 
     public void addUser(List<String> names) { userList.addAll(names); }
     public void removeUser(String name) { userList.remove(name); }
+
+    public static String getCurrentTimeStamp() {
+        SimpleDateFormat formatter = new SimpleDateFormat("HH:mm:ss", Locale.getDefault());//dd/MM/yyyy
+        Date now = new Date();
+        return formatter.format(now);
+    }
 }
