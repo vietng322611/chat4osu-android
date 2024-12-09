@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
+import com.chat4osu.di.Config
 import dagger.hilt.android.AndroidEntryPoint
 import java.io.File
 
@@ -16,6 +17,7 @@ class MainActivity : ComponentActivity() {
         val folder = File(context.getExternalFilesDir(null), "")
         if (!folder.exists())
             Log.d("MainActivity", "mkdir returns ${folder.mkdir()}")
+        Config.loadConfig(context)
 
         val intent = Intent(this, LoginActivity::class.java)
         startActivity(intent)

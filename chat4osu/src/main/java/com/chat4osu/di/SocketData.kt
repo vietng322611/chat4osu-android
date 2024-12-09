@@ -1,4 +1,4 @@
-package com.chat4osu
+package com.chat4osu.di
 
 import android.os.Environment
 import androidx.compose.runtime.mutableStateListOf

@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "com.chat4osu"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.chat4osu"

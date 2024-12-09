@@ -8,11 +8,14 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -21,6 +24,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.SaveAs
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -51,17 +55,17 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.chat4osu.SocketData
+import com.chat4osu.di.Config
+import com.chat4osu.di.SocketData
 import com.chat4osu.ui.theme.Chat4osuTheme
 import com.chat4osu.viewmodel.SelectViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class SelectActivity: ComponentActivity() {
-
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        super.onCreate(savedInstanceState)
         setContent {
             Chat4osuTheme {
                 ChatSelectScreen()
@@ -72,40 +76,58 @@ class SelectActivity: ComponentActivity() {
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun ChatSelectScreen() {
+        BackHandler { navigateToActivity(LoginActivity()) }
+
         val selectVM: SelectViewModel = viewModel()
 
         val chatList by selectVM.chatList
 
         var showDialog by remember { mutableStateOf(false) }
 
-        BackHandler { navigateToActivity(LoginActivity()) }
-
         Scaffold (
             topBar = {
                 CenterAlignedTopAppBar(
-                    modifier = Modifier.drawBehind {
-                        drawLine(
-                            color = Color.Black,
-                            start = Offset(0f, size.height),
-                            end = Offset(size.width, size.height),
-                            strokeWidth = 4f
-                        )
-                    },
+                    modifier = Modifier
+                        .height(90.dp)
+                        .drawBehind {
+                            drawLine(
+                                color = if(Config.getKey("darkMode") == "true") Color.White else Color.Black,
+                                start = Offset(0f, size.height),
+                                end = Offset(size.width, size.height),
+                                strokeWidth = 4f
+                            )
+                        },
                     title = {
-                        Text(
-                            "Select channel",
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
+                        Box(modifier = Modifier.fillMaxHeight(), contentAlignment = Alignment.Center) {
+                            Text(
+                                "Select channel",
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
                     },
                     navigationIcon = {
-                        IconButton(onClick = {
-                            navigateToActivity(LoginActivity())
-                        }) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back"
-                            )
+                        Box(modifier = Modifier.fillMaxHeight(), contentAlignment = Alignment.Center) {
+                            IconButton(onClick = {
+                                navigateToActivity(LoginActivity())
+                            }) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = "Back"
+                                )
+                            }
+                        }
+                    },
+                    actions = {
+                        Box(modifier = Modifier.fillMaxHeight(), contentAlignment = Alignment.Center) {
+                            IconButton(onClick = {
+                                navigateToActivity(SettingActivity())
+                            }) {
+                                Icon(
+                                    imageVector = Icons.Filled.Settings,
+                                    contentDescription = "Settings"
+                                )
+                            }
                         }
                     }
                 )
@@ -151,7 +173,6 @@ class SelectActivity: ComponentActivity() {
         }
     }
 
-    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun DismissBackground(dismissState: SwipeToDismissBoxState) {
         val state = when (dismissState.dismissDirection) {
@@ -183,7 +204,6 @@ class SelectActivity: ComponentActivity() {
         }
     }
 
-    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun SwipeButton(
         name: String,

@@ -9,6 +9,9 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -28,8 +31,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight.Companion.W400
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.TextFieldValue
@@ -39,8 +45,11 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.chat4osu.R
+import com.chat4osu.di.Config
+import com.chat4osu.ui.theme.DarkGray
 
 import com.chat4osu.ui.theme.Chat4osuTheme
+import com.chat4osu.ui.theme.Gray
 import com.chat4osu.viewmodel.LoginViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -50,10 +59,9 @@ class LoginActivity : ComponentActivity() {
     private val loginVM: LoginViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        super.onCreate(savedInstanceState)
         subscribeToEvents()
-
         setContent {
             Chat4osuTheme {
                 LoginScreen()
@@ -63,28 +71,25 @@ class LoginActivity : ComponentActivity() {
 
     @Composable
     fun LoginScreen() {
-
         BackHandler { finish() }
 
         var username by remember {
             mutableStateOf(TextFieldValue(""))
         }
-
         var password by remember {
             mutableStateOf(TextFieldValue(""))
         }
-
         var checked by remember { mutableStateOf(false) }
 
-        loginVM.loadCredential()?.let {
+        loginVM.loadCredential().let {
             username = TextFieldValue(it[0])
             password = TextFieldValue(it[1])
-            checked = true
+            checked = (it[2] == "true")
         }
 
         var showProgress by remember { mutableStateOf(false) }
-
         val uriHandler = LocalUriHandler.current
+        val focusManager = LocalFocusManager.current
 
         loginVM.loadingState.observe(this) { uiLoadingState ->
             showProgress = when (uiLoadingState) {
@@ -101,9 +106,18 @@ class LoginActivity : ComponentActivity() {
         ConstraintLayout(
             modifier = Modifier
                 .fillMaxSize()
+                .background(
+                    if (Config.getKey("darkMode") == "true")
+                        DarkGray
+                    else
+                        Color.White
+                )
                 .padding(start = 35.dp, end = 35.dp)
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) { focusManager.clearFocus() },
         ) {
-
             val (
                 logo, usernameTextField, passwordTextField, checkBox, loginBtn, getPassBtn, progressBar
             ) = createRefs()
@@ -124,12 +138,13 @@ class LoginActivity : ComponentActivity() {
             OutlinedTextField(
                 value = username,
                 onValueChange = { newValue: TextFieldValue -> username = newValue },
-                label = { Text(text = "Enter username") },
+                label = { Text(
+                    "Enter username",
+                    color = if (Config.getKey("darkMode") == "true") Gray else Color.Black
+                ) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .constrainAs(usernameTextField) {
-                        start.linkTo(parent.start)
-                        end.linkTo(parent.end)
                         top.linkTo(logo.bottom, margin = 32.dp)
                     },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
@@ -139,12 +154,13 @@ class LoginActivity : ComponentActivity() {
                 value = password,
                 onValueChange = { newValue: TextFieldValue -> password = newValue },
                 visualTransformation = PasswordVisualTransformation(),
-                label = { Text(text = "Enter password") },
+                label = { Text(
+                    "Enter password",
+                    color = if (Config.getKey("darkMode") == "true") Gray else Color.Black
+                ) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .constrainAs(passwordTextField) {
-                        start.linkTo(parent.start)
-                        end.linkTo(parent.end)
                         top.linkTo(usernameTextField.bottom, margin = 16.dp)
                     },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
@@ -153,10 +169,7 @@ class LoginActivity : ComponentActivity() {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
-                    .fillMaxWidth()
                     .constrainAs(checkBox) {
-                        start.linkTo(parent.start)
-                        end.linkTo(parent.end)
                         top.linkTo(passwordTextField.bottom, margin = 8.dp)
                     }
             ) {
@@ -164,7 +177,11 @@ class LoginActivity : ComponentActivity() {
                     checked = checked,
                     onCheckedChange = { checked = it }
                 )
-                Text("Save credentials")
+                Text(
+                    "Save credentials",
+                    color = if (Config.getKey("darkMode") == "true") Gray else Color.Black,
+                    fontWeight = W400
+                )
             }
 
             Button(
@@ -174,12 +191,10 @@ class LoginActivity : ComponentActivity() {
                 modifier = Modifier
                     .fillMaxWidth()
                     .constrainAs(loginBtn) {
-                        start.linkTo(parent.start)
-                        end.linkTo(parent.end)
                         top.linkTo(checkBox.bottom, margin = 16.dp)
                     }
             ) {
-                Text(text = "Login")
+                Text("Login")
             }
 
             Button(
@@ -189,12 +204,10 @@ class LoginActivity : ComponentActivity() {
                 modifier = Modifier
                     .fillMaxWidth()
                     .constrainAs(getPassBtn) {
-                        start.linkTo(parent.start)
-                        end.linkTo(parent.end)
-                        top.linkTo(loginBtn.bottom, margin = 16.dp)
+                        top.linkTo(loginBtn.bottom, margin = 8.dp)
                     }
             ) {
-                Text(text = "Get IRC password")
+                Text("Get IRC password")
             }
 
             if (showProgress) {
