@@ -12,6 +12,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -45,9 +46,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.chat4osu.R
-import com.chat4osu.di.Config
 import com.chat4osu.ui.theme.DarkGray
-
 import com.chat4osu.ui.theme.Chat4osuTheme
 import com.chat4osu.ui.theme.Gray
 import com.chat4osu.viewmodel.LoginViewModel
@@ -72,6 +71,9 @@ class LoginActivity : ComponentActivity() {
     @Composable
     fun LoginScreen() {
         BackHandler { finish() }
+        val uriHandler = LocalUriHandler.current
+        val focusManager = LocalFocusManager.current
+        val isDarkMode = isSystemInDarkTheme()
 
         var username by remember {
             mutableStateOf(TextFieldValue(""))
@@ -80,16 +82,13 @@ class LoginActivity : ComponentActivity() {
             mutableStateOf(TextFieldValue(""))
         }
         var checked by remember { mutableStateOf(false) }
+        var showProgress by remember { mutableStateOf(false) }
 
         loginVM.loadCredential().let {
             username = TextFieldValue(it[0])
             password = TextFieldValue(it[1])
             checked = (it[2] == "true")
         }
-
-        var showProgress by remember { mutableStateOf(false) }
-        val uriHandler = LocalUriHandler.current
-        val focusManager = LocalFocusManager.current
 
         loginVM.loadingState.observe(this) { uiLoadingState ->
             showProgress = when (uiLoadingState) {
@@ -107,7 +106,7 @@ class LoginActivity : ComponentActivity() {
             modifier = Modifier
                 .fillMaxSize()
                 .background(
-                    if (Config.getKey("darkMode") == "true")
+                    if (isDarkMode)
                         DarkGray
                     else
                         Color.White
@@ -140,7 +139,7 @@ class LoginActivity : ComponentActivity() {
                 onValueChange = { newValue: TextFieldValue -> username = newValue },
                 label = { Text(
                     "Enter username",
-                    color = if (Config.getKey("darkMode") == "true") Gray else Color.Black
+                    color = if (isDarkMode) Gray else Color.Black
                 ) },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -156,7 +155,7 @@ class LoginActivity : ComponentActivity() {
                 visualTransformation = PasswordVisualTransformation(),
                 label = { Text(
                     "Enter password",
-                    color = if (Config.getKey("darkMode") == "true") Gray else Color.Black
+                    color = if (isDarkMode) Gray else Color.Black
                 ) },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -179,7 +178,7 @@ class LoginActivity : ComponentActivity() {
                 )
                 Text(
                     "Save credentials",
-                    color = if (Config.getKey("darkMode") == "true") Gray else Color.Black,
+                    color = if (isDarkMode) Gray else Color.Black,
                     fontWeight = W400
                 )
             }

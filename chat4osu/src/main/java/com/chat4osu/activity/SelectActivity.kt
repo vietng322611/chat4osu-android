@@ -7,6 +7,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -54,8 +56,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.chat4osu.di.Config
 import com.chat4osu.di.SocketData
 import com.chat4osu.ui.theme.Chat4osuTheme
 import com.chat4osu.viewmodel.SelectViewModel
@@ -63,6 +63,8 @@ import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class SelectActivity: ComponentActivity() {
+    private val selectVM: SelectViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
@@ -78,10 +80,9 @@ class SelectActivity: ComponentActivity() {
     fun ChatSelectScreen() {
         BackHandler { navigateToActivity(LoginActivity()) }
 
-        val selectVM: SelectViewModel = viewModel()
+        val isDarkMode = isSystemInDarkTheme()
 
         val chatList by selectVM.chatList
-
         var showDialog by remember { mutableStateOf(false) }
 
         Scaffold (
@@ -91,7 +92,7 @@ class SelectActivity: ComponentActivity() {
                         .height(90.dp)
                         .drawBehind {
                             drawLine(
-                                color = if(Config.getKey("darkMode") == "true") Color.White else Color.Black,
+                                color = if (isDarkMode) Color.White else Color.Black,
                                 start = Offset(0f, size.height),
                                 end = Offset(size.width, size.height),
                                 strokeWidth = 4f

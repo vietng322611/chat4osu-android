@@ -27,7 +27,6 @@ private val LightColorScheme = lightColorScheme(
 @Composable
 fun Chat4osuTheme(
     darkTheme: Boolean = (Config.getKey("darkMode") == "true"),
-    // Dynamic color is available on Android 12+
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
