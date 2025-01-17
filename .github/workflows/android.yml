@@ -26,6 +26,9 @@ jobs:
       run: ./gradlew build
     - name: Upload a Build Artifact
       uses: actions/upload-artifact@v4.6.0
+      with:
+          name: test-build
+          path: output/test/test-build.apk
     - name: Upload release assets
       uses: actions/upload-release-asset@v1
       env:
