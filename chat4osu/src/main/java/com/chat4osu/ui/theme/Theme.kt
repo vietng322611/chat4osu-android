@@ -1,6 +1,7 @@
 package com.chat4osu.ui.theme
 
 import android.app.Activity
+import android.view.WindowInsets
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -39,8 +40,17 @@ fun Chat4osuTheme(
         SideEffect {
             val window = (view.context as Activity).window
             val insets = WindowCompat.getInsetsController(window, view)
-            window.statusBarColor = if (darkTheme) DarkGray.toArgb() else Color.White.toArgb()
-            window.navigationBarColor = if (darkTheme) DarkGray.toArgb() else Color.White.toArgb()
+            val color = if (darkTheme) DarkGray.toArgb() else Color.White.toArgb()
+
+            window.decorView.setOnApplyWindowInsetsListener { view, windowInsets ->
+                val statusBarInsets = windowInsets.getInsets(WindowInsets.Type.statusBars())
+                val navigationBarInsets = windowInsets.getInsets(WindowInsets.Type.navigationBars())
+
+                view.setBackgroundColor(color)
+                view.setPadding(0, statusBarInsets.top, 0, 0)
+                view.setPadding(0, 0, 0, navigationBarInsets.bottom)
+                windowInsets
+            }
             insets.isAppearanceLightStatusBars = !darkTheme
             insets.isAppearanceLightNavigationBars = !darkTheme
         }
