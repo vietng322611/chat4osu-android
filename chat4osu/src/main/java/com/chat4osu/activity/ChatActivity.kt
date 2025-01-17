@@ -8,18 +8,14 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -39,11 +35,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -71,14 +67,12 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.chat4osu.di.Config
 import com.chat4osu.di.SocketData
 import com.chat4osu.ui.theme.Chat4osuTheme
-import com.chat4osu.ui.theme.CyanWhite
-import com.chat4osu.ui.theme.DarkGray
 import com.chat4osu.ui.theme.LightBlue
 import com.chat4osu.viewmodel.ChatViewModel
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
@@ -99,22 +93,20 @@ class ChatActivity: ComponentActivity() {
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun ChatScreen() {
-        val listState = rememberLazyListState()
         val coroutineScope = rememberCoroutineScope()
+        val focusManager = LocalFocusManager.current
+
+        val listState = rememberLazyListState()
         val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
 
-        val focusManager = LocalFocusManager.current
-        val isDarkMode = isSystemInDarkTheme()
+        val isDarkMode = Config.getKey("darkMode").toBoolean()
 
         var msg by remember { mutableStateOf(TextFieldValue()) }
         val messages by remember { chatVM.messages }
         val users by remember { chatVM.users }
 
-        LaunchedEffect(listState) {
-            while (true) {
-                delay(1000)
-                listState.scrollToItem(index = messages.size)
-            }
+        LaunchedEffect(messages.size) {
+            listState.animateScrollToItem(index = messages.size)
         }
 
         BackHandler {
@@ -154,24 +146,15 @@ class ChatActivity: ComponentActivity() {
                 }
             ) {
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                    Box(
+                    Scaffold(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .imePadding()
-                            .background(
-                                if (isDarkMode) DarkGray else Color.White
-                            )
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null
+                            .clickable (
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
                             ) { focusManager.clearFocus() },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        TopAppBar(
-                            modifier = Modifier
-                                .align(Alignment.TopCenter)
-                                .height(88.dp)
-                                .drawBehind {
+                        topBar = {
+                            TopAppBar(
+                                modifier = Modifier.drawBehind {
                                     drawLine(
                                         color = if (isDarkMode) Color.White else Color.Black,
                                         start = Offset(0f, size.height),
@@ -179,111 +162,96 @@ class ChatActivity: ComponentActivity() {
                                         strokeWidth = 4f
                                     )
                                 },
-                            title = {
-                                Box(
-                                    modifier = Modifier.fillMaxHeight(),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        chatVM.activeChat,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                }
-                            },
-                            navigationIcon = {
-                                Box(
-                                    modifier = Modifier.fillMaxHeight(),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    IconButton(onClick = {
-                                        chatVM.saveMsg()
-                                        navigateToActivity(SelectActivity())
-                                    }) {
-                                        Icon(
-                                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                            contentDescription = "Back"
+                                title = {
+                                    Box(
+                                        modifier = Modifier.fillMaxHeight(),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            chatVM.activeChat,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
                                         )
                                     }
-                                }
-                            },
-                            actions = {
-                                if (SocketData.getActiveChatType() != "DM") {
+                                },
+                                navigationIcon = {
                                     Box(
                                         modifier = Modifier.fillMaxHeight(),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         IconButton(onClick = {
-                                            chatVM.getUserList()
-                                            coroutineScope.launch {
-                                                drawerState.apply {
-                                                    if (isClosed) open() else close()
-                                                }
-                                            }
+                                            chatVM.saveMsg()
+                                            navigateToActivity(SelectActivity())
                                         }) {
                                             Icon(
-                                                imageVector = Icons.Filled.Menu,
-                                                contentDescription = "Show online players"
+                                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                                contentDescription = "Back"
                                             )
                                         }
                                     }
-                                }
-                            },
-                            scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(),
-                        )
-                        LazyColumn(
-                            state = listState,
-                            modifier = Modifier
-                                .padding(start = 8.dp, end = 8.dp, top = 88.dp, bottom = 88.dp)
-                                .fillMaxSize(),
-                            verticalArrangement = Arrangement.Bottom
-                        ) {
-                            items(messages) { text ->
-                                SelectionContainer {
-                                    Text(
-                                        text = buildString(text, isDarkMode),
-                                        fontSize = 15.sp,
-                                        maxLines = Int.MAX_VALUE,
-                                        overflow = TextOverflow.Visible,
-                                    )
-                                }
-                            }
-                        }
-                        BottomAppBar(
-                            modifier = Modifier
-                                .align(Alignment.BottomCenter)
-                                .height(88.dp),
-                            content = {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .navigationBarsPadding(),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
+                                },
+                                actions = {
+                                    if (SocketData.getActiveChatType() != "DM") {
+                                        Box(
+                                            modifier = Modifier.fillMaxHeight(),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            IconButton(onClick = {
+                                                chatVM.getUserList()
+                                                coroutineScope.launch {
+                                                    drawerState.apply {
+                                                        if (isClosed) open() else close()
+                                                    }
+                                                }
+                                            }) {
+                                                Icon(
+                                                    imageVector = Icons.Filled.Menu,
+                                                    contentDescription = "Show online players"
+                                                )
+                                            }
+                                        }
+                                    }
+                                },
+                            )
+                        },
+                        bottomBar = {
+                            BottomAppBar(
+                                contentPadding = PaddingValues(
+                                    horizontal = 8.dp,
+                                    vertical = 4.dp
+                                ),
+                                content = {
                                     TextField(
                                         value = msg,
                                         onValueChange = { msg = it },
-                                        modifier = Modifier.weight(0.8f),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(50.dp)
+                                            .padding(end = 4.dp),
                                         shape = RoundedCornerShape(16.dp),
                                         colors = TextFieldDefaults.colors(
                                             focusedIndicatorColor = Color.Transparent,
                                             unfocusedIndicatorColor = Color.Transparent,
                                             disabledIndicatorColor = Color.Transparent
                                         ),
-                                        placeholder = { Text("Enter your message...") },
+                                        placeholder = {
+                                            Text(
+                                                "Enter your message...",
+                                                fontSize = 15.sp
+                                            )
+                                        },
                                         singleLine = true,
                                         textStyle = TextStyle(
-                                            fontSize = 10.sp,
+                                            fontSize = 15.sp,
                                         )
                                     )
                                     IconButton(
                                         onClick = {
-                                            if (msg.text.isNotEmpty()) {
-                                                chatVM.addMsg("$username: ${msg.text}")
-                                                SocketData.readInput(msg.text)
-                                                msg = TextFieldValue()
-                                            }
+                                            chatVM.addMsg("$username: ${msg.text}")
+                                            SocketData.readInput(msg.text)
+                                            msg = TextFieldValue()
                                         },
+                                        enabled = msg.text.isNotEmpty()
                                     ) {
                                         Icon(
                                             Icons.AutoMirrored.Filled.Send,
@@ -291,8 +259,28 @@ class ChatActivity: ComponentActivity() {
                                         )
                                     }
                                 }
+                            )
+                        }
+                    ) { innerPadding ->
+                        LazyColumn(
+                            state = listState,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(innerPadding),
+                            verticalArrangement = Arrangement.Bottom
+                        ) {
+                            items(messages) { text ->
+                                SelectionContainer {
+                                    Text(
+                                        text = buildString(text, isDarkMode),
+                                        modifier = Modifier.padding(4.dp),
+                                        fontSize = 15.sp,
+                                        maxLines = Int.MAX_VALUE,
+                                        overflow = TextOverflow.Visible,
+                                    )
+                                }
                             }
-                        )
+                        }
                     }
                 }
             }
@@ -303,7 +291,7 @@ class ChatActivity: ComponentActivity() {
     private fun buildString(text: String, isDarkTheme: Boolean): AnnotatedString {
         val textList = text.split(" ").toMutableList()
         val name: String = textList[1].replace(":", "")
-        val color = if (name == username) LightBlue else CyanWhite
+        val color = if (name == username) LightBlue else Color(0xFF466E05)
         val colorByTheme = if (isDarkTheme) Color.White else Color.Black
         return buildAnnotatedString {
             withStyle(style = SpanStyle(color = colorByTheme)) {

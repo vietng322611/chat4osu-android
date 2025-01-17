@@ -45,8 +45,8 @@ class SettingActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
-        darkTheme.value = Config.getKey("darkMode") == "true"
-        saveCred.value = Config.getKey("saveCred") == "true"
+        darkTheme.value = Config.getKey("darkMode").toBoolean()
+        saveCred.value = Config.getKey("saveCred").toBoolean()
 
         setContent {
             Chat4osuTheme(darkTheme = darkTheme.value) {
@@ -70,7 +70,7 @@ class SettingActivity : ComponentActivity() {
                         .height(90.dp)
                         .drawBehind {
                         drawLine(
-                            color = if(Config.getKey("darkMode") == "true") Color.White else Color.Black,
+                            color = if(darkTheme.value) Color.White else Color.Black,
                             start = Offset(0f, size.height),
                             end = Offset(size.width, size.height),
                             strokeWidth = 4f

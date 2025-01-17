@@ -40,13 +40,19 @@ public class Channel {
 
     public void updateMessage(List<String> data) {
         String message = String.format("[%s] %s: %s", getCurrentTimeStamp(), data.get(2), data.get(3));
-        messageList.add(message);
+        lock.lock();
+        try {
+            messageList.add(message);
+        } finally { lock.unlock(); }
 
-        Matcher matcher = join.matcher(message);
-        if (matcher.matches()) userList.add(matcher.group(1));
+        lock.lock();
+        try {
+            Matcher matcher = join.matcher(message);
+            if (matcher.matches()) userList.add(matcher.group(1));
 
-        matcher = leave.matcher(message);
-        if (matcher.matches()) userList.remove(matcher.group(1));
+            matcher = leave.matcher(message);
+            if (matcher.matches()) userList.remove(matcher.group(1));
+        } finally { lock.unlock(); }
     }
 
     public void saveMsg(List<String> data) {

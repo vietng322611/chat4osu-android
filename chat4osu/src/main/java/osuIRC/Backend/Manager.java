@@ -23,7 +23,7 @@ public class Manager {
 
     public void clear() {
         channelList.clear();
-        nick = activeChat = "";
+        nick = activeChat = pass = "";
     }
 
     public void addChat(String name) {
@@ -81,10 +81,7 @@ public class Manager {
     }
 
     public Channel getChannel(String name) {
-        if (name.isEmpty()) {
-            if (activeChat.isEmpty()) return null;
-            name = activeChat;
-        }
+        if (name.isEmpty()) name = activeChat;
 
         return channelList.getOrDefault(name, null);
     }

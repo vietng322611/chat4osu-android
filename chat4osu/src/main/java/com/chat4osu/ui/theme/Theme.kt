@@ -26,7 +26,7 @@ private val LightColorScheme = lightColorScheme(
 
 @Composable
 fun Chat4osuTheme(
-    darkTheme: Boolean = (Config.getKey("darkMode") == "true"),
+    darkTheme: Boolean = Config.getKey("darkMode").toBoolean(),
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {

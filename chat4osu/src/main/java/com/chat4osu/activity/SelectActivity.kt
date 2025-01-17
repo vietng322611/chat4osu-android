@@ -8,7 +8,6 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -56,6 +55,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.chat4osu.di.Config
 import com.chat4osu.di.SocketData
 import com.chat4osu.ui.theme.Chat4osuTheme
 import com.chat4osu.viewmodel.SelectViewModel
@@ -80,7 +80,7 @@ class SelectActivity: ComponentActivity() {
     fun ChatSelectScreen() {
         BackHandler { navigateToActivity(LoginActivity()) }
 
-        val isDarkMode = isSystemInDarkTheme()
+        val isDarkMode = Config.getKey("darkMode").toBoolean()
 
         val chatList by selectVM.chatList
         var showDialog by remember { mutableStateOf(false) }

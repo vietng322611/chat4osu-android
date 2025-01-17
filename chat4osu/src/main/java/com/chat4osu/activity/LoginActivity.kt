@@ -12,7 +12,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -46,6 +45,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.chat4osu.R
+import com.chat4osu.di.Config
 import com.chat4osu.ui.theme.DarkGray
 import com.chat4osu.ui.theme.Chat4osuTheme
 import com.chat4osu.ui.theme.Gray
@@ -73,7 +73,7 @@ class LoginActivity : ComponentActivity() {
         BackHandler { finish() }
         val uriHandler = LocalUriHandler.current
         val focusManager = LocalFocusManager.current
-        val isDarkMode = isSystemInDarkTheme()
+        val isDarkMode = Config.getKey("darkMode").toBoolean()
 
         var username by remember {
             mutableStateOf(TextFieldValue(""))
@@ -87,7 +87,7 @@ class LoginActivity : ComponentActivity() {
         loginVM.loadCredential().let {
             username = TextFieldValue(it[0])
             password = TextFieldValue(it[1])
-            checked = (it[2] == "true")
+            checked = it[2].toBoolean()
         }
 
         loginVM.loadingState.observe(this) { uiLoadingState ->
@@ -106,10 +106,7 @@ class LoginActivity : ComponentActivity() {
             modifier = Modifier
                 .fillMaxSize()
                 .background(
-                    if (isDarkMode)
-                        DarkGray
-                    else
-                        Color.White
+                    if (isDarkMode) DarkGray else Color.White
                 )
                 .padding(start = 35.dp, end = 35.dp)
                 .clickable(
