@@ -42,14 +42,20 @@ fun Chat4osuTheme(
             val insets = WindowCompat.getInsetsController(window, view)
             val color = if (darkTheme) DarkGray.toArgb() else Color.White.toArgb()
 
-            window.decorView.setOnApplyWindowInsetsListener { view, windowInsets ->
-                val statusBarInsets = windowInsets.getInsets(WindowInsets.Type.statusBars())
-                val navigationBarInsets = windowInsets.getInsets(WindowInsets.Type.navigationBars())
+            // sdk level >= 35
+            if (android.os.Build.VERSION.SDK_INT >= 30) {
+                window.decorView.setOnApplyWindowInsetsListener { view, windowInsets ->
+                    val statusBarInsets = windowInsets.getInsets(WindowInsets.Type.statusBars())
+                    val navigationBarInsets = windowInsets.getInsets(WindowInsets.Type.navigationBars())
 
-                view.setBackgroundColor(color)
-                view.setPadding(0, statusBarInsets.top, 0, 0)
-                view.setPadding(0, 0, 0, navigationBarInsets.bottom)
-                windowInsets
+                    view.setBackgroundColor(color)
+                    view.setPadding(0, statusBarInsets.top, 0, 0)
+                    view.setPadding(0, 0, 0, navigationBarInsets.bottom)
+                    windowInsets
+                }
+            } else {
+                window.statusBarColor = color
+                window.navigationBarColor = color
             }
             insets.isAppearanceLightStatusBars = !darkTheme
             insets.isAppearanceLightNavigationBars = !darkTheme
