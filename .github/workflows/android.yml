@@ -28,6 +28,6 @@ jobs:
       uses: actions/upload-artifact@v4.6.0
       with:
           name: chat4osu-artifact
-          path: ./build/outputs/apk/debug/chat4osu-debug.apk
+          path: ./chat4osu/build/outputs/apk/debug/chat4osu-debug.apk
           if-no-files-found: warn
           retention-days: 5
