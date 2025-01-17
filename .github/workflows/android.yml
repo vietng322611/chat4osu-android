@@ -27,7 +27,7 @@ jobs:
     - name: Upload a Build Artifact
       uses: actions/upload-artifact@v4.6.0
       with:
-          name: chat4osu-release.apk
-          path: ./build/outputs/apk/release/
+          name: chat4osu-artifact
+          path: ./build/outputs/apk/debug/chat4osu-debug.apk
           if-no-files-found: warn
           retention-days: 5
