@@ -16,7 +16,7 @@ object StringUtils {
         if (mData[1] == "QUIT") return retData
 
         when (mData[1]) {
-            "401", "403" -> throw NoSuchChannel(data[3])
+            "401", "403" -> throw NoSuchChannel(mData[3])
             "323", "353" -> {
                 // indicator, channel, username
                 retData.add("0")

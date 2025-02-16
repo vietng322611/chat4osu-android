@@ -1,6 +1,5 @@
 package com.chat4osu.di
 
-import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import osuIRC.OsuSocket
@@ -96,15 +95,8 @@ class SocketData {
         }
 
         fun archiveChat(name: String): String? {
-            osuSocket.manager.getChannel(name)?.let {
-                val outputFile: String? = it.archiveChat()
-                if (outputFile == null) {
-                    Log.d("Error", "archiveChat: Failed to save chat log")
-                }
-                else { removeChat(name) }
-                return outputFile
-            }
-            return null
+            val outputFile = osuSocket.archiveChat(name)
+            return outputFile
         }
 
         fun removeChat(name: String) {

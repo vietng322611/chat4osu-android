@@ -24,7 +24,7 @@ class LoginViewModel @Inject constructor(application: Application) : AndroidView
     val loadingState: LiveData<UILoadingState> get() = _loadingState
 
     private fun isValidUsername(username: String): Boolean {
-        return !username.contains(" ")
+        return !username.contains(" ") && username.isNotEmpty()
     }
 
     fun loadCredential(): List<String> {
@@ -41,9 +41,21 @@ class LoginViewModel @Inject constructor(application: Application) : AndroidView
         _loadingState.value = UILoadingState.Loading
 
         viewModelScope.launch {
-            if (isValidUsername(trimmedUsername) && trimmedPassword != "") {
+            if (!isValidUsername(trimmedUsername) || trimmedPassword == "") {
+                _loadingState.value = UILoadingState.NotLoading
+                _loginEvent.emit(LoginEvent.ErrorInvalidInput)
+            }
+            else {
                 val code: Int = SocketData.connect(username, password)
-                if (code != 0) {
+                if (code == 0) {
+                    Config.writeToConfig(context, "username", trimmedUsername, !saveCred)
+                    Config.writeToConfig(context, "password", trimmedPassword, !saveCred)
+                    Config.writeToConfig(context, "saveCred", saveCred.toString())
+
+                    _loadingState.value = UILoadingState.NotLoading
+                    _loginEvent.emit(LoginEvent.Success)
+                }
+                else {
                     val errString = when (code) {
                         1 -> "Wrong password or username"
                         2 -> "Connection timed out"
@@ -53,23 +65,13 @@ class LoginViewModel @Inject constructor(application: Application) : AndroidView
                     _loadingState.value = UILoadingState.NotLoading
                     _loginEvent.emit(LoginEvent.ErrorLogin(errString))
                 }
-            } else {
-                _loadingState.value = UILoadingState.NotLoading
-                _loginEvent.emit(LoginEvent.ErrorInvalidInput)
             }
-
-            Config.writeToConfig(context, "username", trimmedUsername, !saveCred)
-            Config.writeToConfig(context, "password", trimmedPassword, !saveCred)
-            Config.writeToConfig(context, "saveCred", saveCred.toString())
-
-            _loadingState.value = UILoadingState.NotLoading
-            _loginEvent.emit(LoginEvent.Success)
         }
     }
 
     sealed class LoginEvent {
         data object ErrorInvalidInput: LoginEvent()
-        data class ErrorLogin(val error: String): LoginEvent()
+        data class ErrorLogin(val error: String) : LoginEvent()
         data class ErrorSavingCredential(val error: String): LoginEvent()
         data object Success: LoginEvent()
     }

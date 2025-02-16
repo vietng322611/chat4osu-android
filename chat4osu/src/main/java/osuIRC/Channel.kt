@@ -81,19 +81,18 @@ class Channel(var name: String) {
         try {
             fos = FileOutputStream(file)
             val content = messageList.joinToString("\n")
-            Log.d("Info", content)
             fos.write(content.toByteArray())
             fos.flush()
             fos.close()
         } catch (e: Exception) {
-            Log.d("Error", "archiveChat: ${e.message}")
+            Log.e("Channel", "archiveChat: ${e.message}")
             return null
         } finally {
             if (fos != null) {
                 try {
                     fos.close()
                 } catch (e: IOException) {
-                    Log.d("error", "archiveChat: Error closing output stream")
+                    Log.e("Channel", "archiveChat: Error closing output stream")
                 }
             }
         }

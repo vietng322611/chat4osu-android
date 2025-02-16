@@ -22,12 +22,12 @@ class Manager {
         }
     }
 
+    val allChat: List<String>
+        get() = ArrayList(channelList.keys)
+
     fun removeChat(name: String) {
         channelList.remove(name)
     }
-
-    val allChat: List<String>
-        get() = ArrayList(channelList.keys)
 
     fun update(data: List<String>) {
         if (data.isEmpty()) return

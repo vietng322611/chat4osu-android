@@ -93,13 +93,8 @@ class LoginActivity : ComponentActivity() {
 
         loginVM.loadingState.observe(this) { uiLoadingState ->
             showProgress = when (uiLoadingState) {
-                is LoginViewModel.UILoadingState.Loading -> {
-                    true
-                }
-
-                is LoginViewModel.UILoadingState.NotLoading -> {
-                    false
-                }
+                is LoginViewModel.UILoadingState.Loading -> { true }
+                is LoginViewModel.UILoadingState.NotLoading -> { false }
             }
         }
 
@@ -240,7 +235,6 @@ class LoginActivity : ComponentActivity() {
 
                         is LoginViewModel.LoginEvent.Success -> {
                             showToast("Login Successful.")
-
                             navigateToSelect()
                         }
                     }

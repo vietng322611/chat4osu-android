@@ -15,7 +15,7 @@ import java.net.Socket
 import java.net.SocketTimeoutException
 
 class OsuSocket {
-    val fatal = mutableStateOf(false)
+    private val fatal = mutableStateOf(false)
 
     private val scope = CoroutineScope(Dispatchers.IO)
 
@@ -117,7 +117,7 @@ class OsuSocket {
                         delay(50)
                         continue
                     }
-//                    if (!msg.contains("QUIT")) Log.d("OsuSocket", "recv: $msg")
+                    if (!msg.contains("QUIT")) Log.d("OsuSocket", "recv: $msg")
                     if (msg == "PING cho.ppy.sh") send(msg)
 
                     val parsedMessage = StringUtils.parse(msg)
@@ -160,5 +160,18 @@ class OsuSocket {
             send("PART $name")
             manager.removeChat(name)
         }
+    }
+
+    fun archiveChat(name: String): String? {
+        val channel = manager.getChannel(name)
+        if (channel == null) return channel
+
+        part(name)
+        val outputFile = channel.archiveChat()
+        if (outputFile != null) {
+            manager.removeChat(name)
+        }
+
+        return outputFile
     }
 }
