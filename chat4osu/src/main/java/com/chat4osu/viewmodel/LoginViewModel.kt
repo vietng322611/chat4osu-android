@@ -44,10 +44,14 @@ class LoginViewModel @Inject constructor(application: Application) : AndroidView
             if (isValidUsername(trimmedUsername) && trimmedPassword != "") {
                 val code: Int = SocketData.connect(username, password)
                 if (code != 0) {
+                    val errString = when (code) {
+                        1 -> "Wrong password or username"
+                        2 -> "Connection timed out"
+                        3 -> "Unknown error"
+                        else -> ""
+                    }
                     _loadingState.value = UILoadingState.NotLoading
-                    _loginEvent.emit(
-                        LoginEvent.ErrorLogin(SocketData.collect())
-                    )
+                    _loginEvent.emit(LoginEvent.ErrorLogin(errString))
                 }
             } else {
                 _loadingState.value = UILoadingState.NotLoading

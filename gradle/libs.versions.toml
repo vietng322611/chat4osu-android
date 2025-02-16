@@ -8,11 +8,12 @@ junit = "4.13.2"
 junitVersion = "1.2.1"
 espressoCore = "3.6.1"
 lifecycleRuntimeKtx = "2.8.7"
-activityCompose = "1.9.3"
-composeBom = "2024.11.00"
+activityCompose = "1.10.0"
+composeBom = "2025.02.00"
 appcompat = "1.7.0"
-runtimeLivedata = "1.7.5"
-composeMaterial = "1.4.0"
+runtimeLivedata = "1.7.8"
+composeMaterial = "1.4.1"
+socketIoClientVersion = "2.0.0"
 
 [libraries]
 androidx-constraintlayout-compose = { module = "androidx.constraintlayout:constraintlayout-compose", version.ref = "constraintlayoutCompose" }
@@ -39,6 +40,7 @@ androidx-material3 = { group = "androidx.compose.material3", name = "material3" 
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 androidx-runtime-livedata = { group = "androidx.compose.runtime", name = "runtime-livedata", version.ref = "runtimeLivedata" }
 androidx-compose-material = { group = "androidx.wear.compose", name = "compose-material", version.ref = "composeMaterial" }
+socket-io-client = { module = "io.socket:socket.io-client", version.ref = "socketIoClientVersion" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

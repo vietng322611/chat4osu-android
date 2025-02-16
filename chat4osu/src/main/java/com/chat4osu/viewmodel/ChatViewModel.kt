@@ -8,16 +8,10 @@ import com.chat4osu.di.SocketData
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
-import java.text.SimpleDateFormat
-import java.util.Locale
 import javax.inject.Inject
 
 @HiltViewModel
 class ChatViewModel @Inject constructor() : ViewModel() {
-    private val mutex = Mutex()
-
     private var _messages = mutableStateOf(listOf<String>())
     val messages: State<List<String>> get() = _messages
 
@@ -28,28 +22,14 @@ class ChatViewModel @Inject constructor() : ViewModel() {
 
     private var _stopTracking = mutableStateOf(false)
 
-    init { trackChatData() }
+    init { listenChatData() }
 
-    fun addMsg(msg: String) {
-        val timeStamp = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(System.currentTimeMillis())
-        viewModelScope.launch {
-            mutex.withLock {
-                _messages.value += "[$timeStamp] $msg"
-            }
-        }
-    }
+    fun fetchUserList() { _users.value = SocketData.getUser("") }
 
-    fun saveMsg() {
-        _stopTracking.value = true
-        SocketData.saveMsg(_messages.value)
-    }
-
-    fun getUserList() { _users.value = SocketData.getUser("") }
-
-    private fun trackChatData() {
+    private fun listenChatData() {
         viewModelScope.launch {
             while (!_stopTracking.value) {
-                _messages.value += SocketData.getMessage("")
+                _messages.value += SocketData.pullMessage("")
 
                 delay(100)
             }

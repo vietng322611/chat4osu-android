@@ -50,14 +50,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.chat4osu.di.Config
 import com.chat4osu.di.SocketData
+import com.chat4osu.ui.theme.Black
 import com.chat4osu.ui.theme.Chat4osuTheme
+import com.chat4osu.ui.theme.DarkWhite
 import com.chat4osu.viewmodel.SelectViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -92,7 +93,7 @@ class SelectActivity: ComponentActivity() {
                         .height(90.dp)
                         .drawBehind {
                             drawLine(
-                                color = if (isDarkMode) Color.White else Color.Black,
+                                color = if (isDarkMode) DarkWhite else Black,
                                 start = Offset(0f, size.height),
                                 end = Offset(size.width, size.height),
                                 strokeWidth = 4f
@@ -167,7 +168,7 @@ class SelectActivity: ComponentActivity() {
             ShowDialog(
                 onDismiss = { showDialog = false },
                 onSubmit = { input ->
-                    SocketData.readInput("/join $input")
+                    SocketData.readInput("/join $input", input)
                     navigateToActivity(ChatActivity())
                 }
             )
@@ -209,7 +210,7 @@ class SelectActivity: ComponentActivity() {
     fun SwipeButton(
         name: String,
         onRemove: (String) -> Unit,
-        onArchive: (String) -> String
+        onArchive: (String) -> String?
     ) {
         val context = LocalContext.current
         val dismissState = rememberSwipeToDismissBoxState(
@@ -220,8 +221,15 @@ class SelectActivity: ComponentActivity() {
                         Toast.makeText(context, "Chat Deleted: $name", Toast.LENGTH_SHORT).show()
                     }
                     SwipeToDismissBoxValue.EndToStart -> {
-                        val path: String = onArchive(name)
-                        Toast.makeText(context, "Chat log saved at: $path", Toast.LENGTH_SHORT).show()
+                        val path: String? = onArchive(name)
+                        if (path == null) {
+                            Toast.makeText(context, "Failed to save chat log", Toast.LENGTH_SHORT)
+                                .show()
+                        }
+                        else {
+                            Toast.makeText(context, "Chat log saved at: $path", Toast.LENGTH_SHORT)
+                                .show()
+                        }
                     }
                     SwipeToDismissBoxValue.Settled -> return@rememberSwipeToDismissBoxState false
                 }

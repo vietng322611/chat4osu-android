@@ -31,7 +31,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
@@ -46,9 +45,11 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.chat4osu.R
 import com.chat4osu.di.Config
+import com.chat4osu.ui.theme.Black
 import com.chat4osu.ui.theme.DarkGray
 import com.chat4osu.ui.theme.Chat4osuTheme
 import com.chat4osu.ui.theme.Gray
+import com.chat4osu.ui.theme.White
 import com.chat4osu.viewmodel.LoginViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -106,7 +107,7 @@ class LoginActivity : ComponentActivity() {
             modifier = Modifier
                 .fillMaxSize()
                 .background(
-                    if (isDarkMode) DarkGray else Color.White
+                    if (isDarkMode) DarkGray else White
                 )
                 .padding(start = 35.dp, end = 35.dp)
                 .clickable(
@@ -136,7 +137,7 @@ class LoginActivity : ComponentActivity() {
                 onValueChange = { newValue: TextFieldValue -> username = newValue },
                 label = { Text(
                     "Enter username",
-                    color = if (isDarkMode) Gray else Color.Black
+                    color = if (isDarkMode) Gray else Black
                 ) },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -152,7 +153,7 @@ class LoginActivity : ComponentActivity() {
                 visualTransformation = PasswordVisualTransformation(),
                 label = { Text(
                     "Enter password",
-                    color = if (isDarkMode) Gray else Color.Black
+                    color = if (isDarkMode) Gray else Black
                 ) },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -175,7 +176,7 @@ class LoginActivity : ComponentActivity() {
                 )
                 Text(
                     "Save credentials",
-                    color = if (isDarkMode) Gray else Color.Black,
+                    color = if (isDarkMode) Gray else Black,
                     fontWeight = W400
                 )
             }

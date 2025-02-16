@@ -1,13 +1,9 @@
 package com.chat4osu.di
 
-import android.os.Environment
-import androidx.compose.runtime.mutableStateListOf
-import osuIRC.Backend.OsuSocket
+import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.io.File
-import java.io.FileOutputStream
-import java.io.IOException
+import osuIRC.OsuSocket
 
 class SocketData {
     companion object {
@@ -25,31 +21,28 @@ class SocketData {
             }
         }
 
-        fun collect(): String {
-            return try {
-                osuSocket.stackTrace.last()
-            } catch (e: NoSuchElementException) {
-                ""
-            }
-        }
-
-        fun readInput(input: String) {
+        fun readInput(input: String, channel: String) {
             for ((pattern, action) in patterns) {
                 if (!pattern.matches(input)) continue
 
                 val match = pattern.find(input)
                 if (match != null) {
                     action(match.groupValues[1])
-                    println(collect())
                     return
                 }
             }
 
-            send(input)
+            send(input, channel)
         }
 
-        private fun send(msg: String) {
-            osuSocket.send("PRIVMSG ${osuSocket.manager.activeChat} $msg")
+        private fun send(message: String, channel: String) {
+            osuSocket.manager.update(listOf(
+                "1",
+                channel,
+                osuSocket.manager.nick,
+                message
+            ))
+            osuSocket.send("PRIVMSG ${osuSocket.manager.activeChat} $message")
         }
 
         private fun getChat(name: String) {
@@ -65,23 +58,18 @@ class SocketData {
             osuSocket.send(msg)
         }
 
-        fun getMessage(channelName: String): MutableList<String> {
+        fun pullMessage(channelName: String): List<String> {
             osuSocket.manager.getChannel(channelName)?.let {
-                return it.message
+                return it.pullMessage()
             }
-
-            return mutableStateListOf()
-        }
-
-        fun saveMsg(msgList: List<String>) {
-            osuSocket.manager.getChannel("")?.saveMsg(msgList)
+            return listOf()
         }
 
         fun getUser(channelName: String): List<String> {
             osuSocket.manager.getChannel(channelName)?.let {
-                return it.user.toList()
+                return it.getUser.toList()
             }
-            return mutableListOf()
+            return listOf()
         }
 
         fun getRoot(): String {
@@ -89,15 +77,12 @@ class SocketData {
         }
 
         fun getActiveChat(): String {
-            osuSocket.manager.activeChat?.let {
-                return osuSocket.manager.activeChat
-            }
-            return ""
+            return osuSocket.manager.activeChat
         }
 
         fun getActiveChatType(): String {
             osuSocket.manager.getChannel("")?.let {
-                return it.getType()
+                return it.getType
             }
             return ""
         }
@@ -107,41 +92,19 @@ class SocketData {
         }
 
         fun setActiveChat(name: String) {
-            osuSocket.manager.setActiveChat(name)
+            osuSocket.manager.activeChat = name
         }
 
-        fun archiveChat(name: String): String {
-            val folder =
-                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-            val file = File(folder, "$name.log")
-
-            val data = getMessage(name)
-            var fos: FileOutputStream? = null
-
-            try {
-                fos = FileOutputStream(file)
-
-                for (msg in data) {
-                    val s = msg + '\n'
-                    fos.write(s.toByteArray())
+        fun archiveChat(name: String): String? {
+            osuSocket.manager.getChannel(name)?.let {
+                val outputFile: String? = it.archiveChat()
+                if (outputFile == null) {
+                    Log.d("Error", "archiveChat: Failed to save chat log")
                 }
-
-                fos.flush()
-                fos.close()
-            } catch (e: Exception) {
-                e.printStackTrace()
-            } finally {
-                if (fos != null) {
-                    try {
-                        fos.close()
-                    } catch (e: IOException) {
-                        e.printStackTrace()
-                    }
-                }
+                else { removeChat(name) }
+                return outputFile
             }
-
-            removeChat(name)
-            return "$folder/$name.log"
+            return null
         }
 
         fun removeChat(name: String) {
