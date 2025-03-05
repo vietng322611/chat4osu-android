@@ -138,7 +138,7 @@ class OsuSocket {
         }
     }
 
-    private fun putMessage(message: String) {
+    fun putMessage(message: String) {
         scope.launch {
             mQueue.send(message)
         }
