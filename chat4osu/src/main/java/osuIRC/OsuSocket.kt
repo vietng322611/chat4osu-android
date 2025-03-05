@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.compose.runtime.mutableStateOf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.BufferedReader
@@ -23,6 +24,7 @@ class OsuSocket {
     private lateinit var socket: Socket
     private lateinit var writer: BufferedWriter
     private lateinit var reader: BufferedReader
+    private val mQueue = Channel<String>(capacity = Channel.UNLIMITED)
 
     private var retryCount = 0
     private var pipeBroken = false
@@ -49,8 +51,8 @@ class OsuSocket {
 
         retryCount = 0
         try {
-            send("PASS $pass")
-            send("NICK $nick")
+            putMessage("PASS $pass")
+            putMessage("NICK $nick")
 
             while(true) {
                 val response = reader.readLine()
@@ -102,7 +104,7 @@ class OsuSocket {
     private fun keepAlive() {
         scope.launch {
             while (true) {
-                if (!socket.isClosed) send("KEEP_ALIVE")
+                if (!socket.isClosed) putMessage("KEEP_ALIVE")
                 delay(30000)
             }
         }
@@ -117,8 +119,8 @@ class OsuSocket {
                         delay(50)
                         continue
                     }
-                    if (!msg.contains("QUIT")) Log.d("OsuSocket", "recv: $msg")
-                    if (msg == "PING cho.ppy.sh") send(msg)
+//                    if (!msg.contains("QUIT")) Log.d("OsuSocket", "recv: $msg")
+                    if (msg == "PING cho.ppy.sh") putMessage(msg)
 
                     val parsedMessage = StringUtils.parse(msg)
                     manager.update(parsedMessage)
@@ -136,28 +138,36 @@ class OsuSocket {
         }
     }
 
-    fun send(message: String) {
+    private fun putMessage(message: String) {
         scope.launch {
-            try {
-                writer.write("$message\n")
-                writer.flush()
-                Log.d("OsuSocket", "send: $message")
-            } catch (e: IOException) {
-                Log.e("OsuSocket", "send: " + e.message)
-                pipeBroken = true
+            mQueue.send(message)
+        }
+    }
+
+    fun send() {
+        scope.launch {
+            for (message in mQueue) {
+                try {
+                    writer.write("$message\n")
+                    writer.flush()
+                    Log.d("OsuSocket", "send: $message")
+                } catch (e: IOException) {
+                    Log.e("OsuSocket", "send: " + e.message)
+                    pipeBroken = true
+                    break
+                }
             }
         }
     }
 
     fun join(name: String) {
-        if (manager.getChannel(name) == null) send("JOIN $name")
-
+        if (manager.getChannel(name) == null) putMessage("JOIN $name")
         manager.activeChat = name
     }
 
     fun part(name: String) {
         if (manager.getChannel(name) != null) {
-            send("PART $name")
+            putMessage("PART $name")
             manager.removeChat(name)
         }
     }
