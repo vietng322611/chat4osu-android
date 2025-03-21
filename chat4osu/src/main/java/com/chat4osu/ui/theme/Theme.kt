@@ -1,16 +1,17 @@
 package com.chat4osu.ui.theme
 
-import android.app.Activity
-import android.view.WindowInsets
+import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
+import androidx.activity.compose.LocalActivity
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
-import androidx.core.view.WindowCompat
 import com.chat4osu.di.Config
 
 private val DarkColorScheme = darkColorScheme(
@@ -27,38 +28,35 @@ private val LightColorScheme = lightColorScheme(
 
 @Composable
 fun Chat4osuTheme(
-    darkTheme: Boolean = Config.getKey("darkMode").toBoolean(),
+    isDarkMode: Boolean = Config.getKey("darkMode").toBoolean(),
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
-        darkTheme -> DarkColorScheme
+        isDarkMode -> DarkColorScheme
         else -> LightColorScheme
     }
 
     val view = LocalView.current
     if (!view.isInEditMode) {
-        SideEffect {
-            val window = (view.context as Activity).window
-            val insets = WindowCompat.getInsetsController(window, view)
-            val color = if (darkTheme) DarkGray.toArgb() else Color.White.toArgb()
+        val color = Color.Transparent.toArgb()
+        val context = LocalActivity.current as ComponentActivity
 
-            // sdk level >= 35
-            if (android.os.Build.VERSION.SDK_INT >= 30) {
-                window.decorView.setOnApplyWindowInsetsListener { view, windowInsets ->
-                    val statusBarInsets = windowInsets.getInsets(WindowInsets.Type.statusBars())
-                    val navigationBarInsets = windowInsets.getInsets(WindowInsets.Type.navigationBars())
-
-                    view.setBackgroundColor(color)
-                    view.setPadding(0, statusBarInsets.top, 0, 0)
-                    view.setPadding(0, 0, 0, navigationBarInsets.bottom)
-                    windowInsets
+        view.setBackgroundColor(if (isDarkMode) DarkGray.toArgb() else White.toArgb())
+        DisposableEffect(isDarkMode) {
+            context.enableEdgeToEdge(
+                statusBarStyle = if (!isDarkMode) {
+                    SystemBarStyle.light(color, color)
+                } else {
+                    SystemBarStyle.dark(color)
+                },
+                navigationBarStyle = if (!isDarkMode) {
+                    SystemBarStyle.light(color, color)
+                } else {
+                    SystemBarStyle.dark(color)
                 }
-            } else {
-                window.statusBarColor = color
-                window.navigationBarColor = color
-            }
-            insets.isAppearanceLightStatusBars = !darkTheme
-            insets.isAppearanceLightNavigationBars = !darkTheme
+            )
+
+            onDispose { }
         }
     }
 

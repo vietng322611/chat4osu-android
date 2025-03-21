@@ -1,4 +1,4 @@
-package osuIRC
+package com.chat4osu.osuIRC
 
 import android.os.Environment
 import android.util.Log
@@ -17,7 +17,7 @@ class Channel(var name: String) {
 
     var type = ""
     private val userList = ConcurrentSkipListSet<String>()
-    private val messageList = mutableListOf<String>()
+    private val message = mutableListOf<String>()
     private val messageOnStage = mutableListOf<String>()
 
     private val patterns = listOf(
@@ -53,7 +53,7 @@ class Channel(var name: String) {
     private fun updateMessage(message: String) {
         lock.lock()
         try {
-            messageList.add(message)
+            this.message.add(message)
             messageOnStage.add(message)
         } finally {
             lock.unlock()
@@ -74,13 +74,18 @@ class Channel(var name: String) {
         return ret
     }
 
+    fun pullAllMessage(): List<String> {
+        val ret = message.toMutableList()
+        return ret
+    }
+
     fun archiveChat(): String? {
         val folder = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
         val file = File(folder, "$name.log")
         var fos: FileOutputStream? = null
         try {
             fos = FileOutputStream(file)
-            val content = messageList.joinToString("\n")
+            val content = message.joinToString("\n")
             fos.write(content.toByteArray())
             fos.flush()
             fos.close()

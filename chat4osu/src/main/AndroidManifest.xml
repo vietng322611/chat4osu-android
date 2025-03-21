@@ -8,7 +8,6 @@
     <application
         android:name=".MainApp"
         android:allowBackup="true"
-        android:windowSoftInputMode="adjustResize"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
@@ -16,6 +15,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Chat4osu"
+
         android:textIsSelectable="true"
         tools:targetApi="35">
         <activity
@@ -25,6 +25,7 @@
             android:theme="@style/Theme.Chat4osu" />
         <activity
             android:name=".activity.ChatActivity"
+            android:windowSoftInputMode="adjustNothing"
             android:exported="false"
             android:label="@string/title_activity_chat"
             android:theme="@style/Theme.Chat4osu" />

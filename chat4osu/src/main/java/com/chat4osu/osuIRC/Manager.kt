@@ -1,4 +1,4 @@
-package osuIRC
+package com.chat4osu.osuIRC
 
 import android.util.Log
 

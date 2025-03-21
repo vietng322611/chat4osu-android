@@ -270,6 +270,7 @@ class SelectActivity: ComponentActivity() {
                     value = text,
                     onValueChange = { newText -> text = newText },
                     label = { Text("Enter channel name") },
+                    singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
             },

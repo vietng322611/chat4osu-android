@@ -2,7 +2,7 @@ package com.chat4osu.di
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import osuIRC.OsuSocket
+import com.chat4osu.osuIRC.OsuSocket
 
 class SocketData {
     companion object {
@@ -60,6 +60,13 @@ class SocketData {
         fun pullMessage(channelName: String): List<String> {
             osuSocket.manager.getChannel(channelName)?.let {
                 return it.pullMessage()
+            }
+            return listOf()
+        }
+
+        fun pullAllMessage(channelName: String): List<String> {
+            osuSocket.manager.getChannel(channelName)?.let {
+                return it.pullAllMessage()
             }
             return listOf()
         }

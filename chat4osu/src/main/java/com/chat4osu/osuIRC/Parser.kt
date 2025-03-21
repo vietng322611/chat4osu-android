@@ -1,4 +1,4 @@
-package osuIRC
+package com.chat4osu.osuIRC
 
 /*
 * :cho.ppy.sh 353 [nick] = [channel_name] :[name_list]

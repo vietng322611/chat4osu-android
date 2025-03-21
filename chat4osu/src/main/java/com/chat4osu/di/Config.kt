@@ -11,6 +11,7 @@ class Config {
         private val config = mutableStateMapOf(
             "darkMode" to "false",
             "saveCred" to "false",
+            "textSize" to "15",
             "username" to "",
             "password" to ""
         )

@@ -1,12 +1,12 @@
-package osuIRC
+package com.chat4osu.osuIRC
 
 import android.util.Log
 import androidx.compose.runtime.mutableStateOf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import java.io.BufferedReader
 import java.io.BufferedWriter
 import java.io.IOException
@@ -17,33 +17,15 @@ import java.net.SocketTimeoutException
 
 class OsuSocket {
     private val fatal = mutableStateOf(false)
-
     private val scope = CoroutineScope(Dispatchers.IO)
 
     val manager = Manager()
     private lateinit var socket: Socket
     private lateinit var writer: BufferedWriter
     private lateinit var reader: BufferedReader
-    private val mQueue = Channel<String>(capacity = Channel.UNLIMITED)
 
     private var retryCount = 0
     private var pipeBroken = false
-
-    init {
-        scope.launch {
-            for (message in mQueue) {
-                try {
-                    writer.write("$message\n")
-                    writer.flush()
-                    Log.d("OsuSocket", "send: $message")
-                } catch (e: IOException) {
-                    Log.e("OsuSocket", "send: " + e.message)
-                    pipeBroken = true
-                    break
-                }
-            }
-        }
-    }
 
     @Throws(InterruptedException::class)
     fun connect(nick: String, pass: String): Int {
@@ -153,10 +135,18 @@ class OsuSocket {
         }
     }
 
-    fun send(message: String) {
-        scope.launch {
-            mQueue.send(message)
+    fun send(message: String) = runBlocking {
+        val job = launch(Dispatchers.IO) {
+            try {
+                writer.write("$message\n")
+                writer.flush()
+                Log.d("OsuSocket", "send: $message")
+            } catch (e: IOException) {
+                Log.e("OsuSocket", "send: " + e.message)
+                pipeBroken = true
+            }
         }
+        job.join()
     }
 
     fun join(name: String) {

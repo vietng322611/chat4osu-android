@@ -12,7 +12,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ChatViewModel @Inject constructor() : ViewModel() {
-    private var _messages = mutableStateOf(listOf<String>())
+    private var _messages = mutableStateOf(SocketData.pullAllMessage(""))
     val messages: State<List<String>> get() = _messages
 
     private var _users = mutableStateOf(listOf<String>())
