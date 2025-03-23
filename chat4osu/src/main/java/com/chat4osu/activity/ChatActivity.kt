@@ -8,6 +8,10 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -20,6 +24,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
@@ -29,6 +34,8 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
@@ -37,6 +44,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -54,6 +62,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -114,16 +123,17 @@ class ChatActivity: ComponentActivity() {
         val focusManager = LocalFocusManager.current
         val coroutineScope = rememberCoroutineScope()
 
-        val listState = rememberLazyListState()
-        val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-
-
         val users by remember { chatVM.users }
         val messages by remember { chatVM.messages }
         val msgInput = remember { mutableStateOf(TextFieldValue()) }
 
-        // scroll when keyboard appear
-        LaunchedEffect(messages.size) {
+        val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+
+        val listState = rememberLazyListState()
+        val listHeightState = remember { mutableStateOf(false) }
+        val isMenuVisible = remember { mutableStateOf(false) }
+
+        LaunchedEffect(messages.size, listHeightState.value) {
             listState.animateScrollToItem(index = messages.size)
         }
 
@@ -143,11 +153,13 @@ class ChatActivity: ComponentActivity() {
             ) {
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                     Column(
-                        modifier = Modifier
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null
-                            ) { focusManager.clearFocus() },
+                        modifier = Modifier.clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) {
+                            focusManager.clearFocus()
+                            isMenuVisible.value = false
+                          },
                     ) {
                         TopBar(
                             modifier = Modifier
@@ -167,7 +179,11 @@ class ChatActivity: ComponentActivity() {
                         )
 
                         MessageView(
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier
+                                .weight(1f)
+                                .onSizeChanged {
+                                    listHeightState.value = !listHeightState.value
+                                },
                             listState = listState,
                             messages = messages
                         )
@@ -176,16 +192,9 @@ class ChatActivity: ComponentActivity() {
                             modifier = Modifier
                                 .padding(bottom = 5.dp)
                                 .navigationBarsPadding()
-                                .drawBehind {
-                                    drawLine(
-                                        color = if (isDarkTheme) DarkWhite else Black,
-                                        start = Offset(0f, 0f),
-                                        end = Offset(size.width, 0f),
-                                        strokeWidth = 4f
-                                    )
-                                }
                                 .imePadding(),
-                            msg = msgInput
+                            msg = msgInput,
+                            isMenuVisible = isMenuVisible
                         )
                     }
                 }
@@ -301,49 +310,108 @@ class ChatActivity: ComponentActivity() {
     }
 
     @Composable
-    fun BottomBar(modifier: Modifier = Modifier, msg: MutableState<TextFieldValue>) {
-        Row(
-            modifier = modifier,
-            verticalAlignment = Alignment.CenterVertically
+    fun BottomBar(
+        modifier: Modifier = Modifier,
+        msg: MutableState<TextFieldValue>,
+        isMenuVisible: MutableState<Boolean>
+    ) {
+        Column(
+            modifier = modifier
         ) {
-            IconButton(
-                onClick = { /*TODO*/ },
+            Row(
+                modifier = Modifier.drawBehind {
+                    drawLine(
+                        color = if (isDarkTheme) DarkWhite else Black,
+                        start = Offset(0f, 0f),
+                        end = Offset(size.width, 0f),
+                        strokeWidth = 4f
+                    )
+                },
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(
+                    onClick = { isMenuVisible.value = !isMenuVisible.value },
+                    content = {
+                        Icon(
+                            imageVector = Icons.Filled.Menu,
+                            contentDescription = "Show online players",
+                            tint = if (isDarkTheme) DarkWhite else Black
+                        )
+                    }
+                )
+                TextField(
+                    value = msg.value,
+                    onValueChange = { msg.value = it },
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(8.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = TextFieldDefaults.colors(
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                        disabledIndicatorColor = Color.Transparent
+                    ),
+                    placeholder = { Text("Enter your message...") },
+                    singleLine = true
+                )
+                IconButton(
+                    onClick = {
+                        SocketData.readInput(msg.value.text, chatVM.activeChat)
+                        msg.value = TextFieldValue()
+                    },
+                    enabled = msg.value.text.isNotEmpty(),
+                    content = {
+                        Icon(
+                            Icons.AutoMirrored.Filled.Send,
+                            contentDescription = "Send",
+                            tint = if (isDarkTheme) DarkWhite else Black
+                        )
+                    },
+                )
+            }
+            AnimatedVisibility(
+                modifier = Modifier.padding(8.dp),
+                visible = isMenuVisible.value,
+                enter = expandVertically(expandFrom = Alignment.Top),
+                exit = shrinkVertically(shrinkTowards = Alignment.Top)
+            ) {
+                BottomMenu()
+            }
+        }
+    }
+
+    @Composable
+    fun BottomMenu() {
+        Row(
+            modifier = Modifier.wrapContentSize(),
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            OutlinedIconButton(
+                onClick = { chatVM.parseMatchData() },
+                modifier = Modifier.height(45.dp).width(45.dp),
+                shape = RoundedCornerShape(5.dp),
+                border = BorderStroke(2.dp, if (isDarkTheme) DarkWhite else Black),
                 content = {
                     Icon(
-                        imageVector = Icons.Filled.Menu,
-                        contentDescription = "Show online players",
+                        Icons.Filled.Add,
+                        contentDescription = "Add match data",
                         tint = if (isDarkTheme) DarkWhite else Black
                     )
                 }
             )
-            TextField(
-                value = msg.value,
-                onValueChange = { msg.value = it },
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(8.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = TextFieldDefaults.colors(
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
-                    disabledIndicatorColor = Color.Transparent
-                ),
-                placeholder = { Text("Enter your message...") },
-                singleLine = true
-            )
-            IconButton(
-                onClick = {
-                    SocketData.readInput(msg.value.text, chatVM.activeChat)
-                    msg.value = TextFieldValue()
-                },
-                enabled = msg.value.text.isNotEmpty(),
+            OutlinedIconButton(
+                onClick = { chatVM.saveMatchData(0) },
+                modifier = Modifier.height(45.dp).width(45.dp),
+                shape = RoundedCornerShape(5.dp),
+                border = BorderStroke(2.dp, if (isDarkTheme) DarkWhite else Black),
                 content = {
                     Icon(
-                        Icons.AutoMirrored.Filled.Send,
-                        contentDescription = "Send",
+                        Icons.Filled.Download,
+                        contentDescription = "Save match",
                         tint = if (isDarkTheme) DarkWhite else Black
                     )
-                },
+                }
             )
         }
     }

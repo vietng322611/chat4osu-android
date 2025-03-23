@@ -4,6 +4,7 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.chat4osu.di.MatchManager
 import com.chat4osu.di.SocketData
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -34,5 +35,16 @@ class ChatViewModel @Inject constructor() : ViewModel() {
                 delay(100)
             }
         }
+    }
+
+    fun parseMatchData() {
+        val data = ""
+        val splitData = data.split("\n")
+        MatchManager.addMatch(splitData[0].toInt(), splitData)
+    }
+
+    fun saveMatchData(matchID: Int) {
+        val matchData = MatchManager.getMatch(matchID)
+        matchData.redScore = 0
     }
 }
