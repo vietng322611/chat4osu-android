@@ -5,8 +5,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
-import com.chat4osu.di.Config
-import com.chat4osu.di.SocketData
+import com.chat4osu.global.Config
+import com.chat4osu.global.IrcData
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -46,7 +46,7 @@ class LoginViewModel @Inject constructor(application: Application) : AndroidView
                 _loginEvent.emit(LoginEvent.ErrorInvalidInput)
             }
             else {
-                val code: Int = SocketData.connect(username, password)
+                val code: Int = IrcData.connect(username, password)
                 if (code == 0) {
                     Config.writeToConfig(context, "username", trimmedUsername, !saveCred)
                     Config.writeToConfig(context, "password", trimmedPassword, !saveCred)

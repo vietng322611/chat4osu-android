@@ -4,7 +4,7 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.chat4osu.di.SocketData
+import com.chat4osu.global.IrcData
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -21,7 +21,7 @@ class SelectViewModel @Inject constructor() : ViewModel() {
     private fun trackJoinedChat() {
         viewModelScope.launch {
             while (!_stopTracking.value) {
-                _chatList.value = SocketData.getAllChat()
+                _chatList.value = IrcData.getAllChat()
 
                 delay(500)
             }

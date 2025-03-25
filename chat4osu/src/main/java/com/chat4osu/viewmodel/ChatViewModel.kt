@@ -4,8 +4,7 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.chat4osu.di.MatchManager
-import com.chat4osu.di.SocketData
+import com.chat4osu.global.IrcData
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -13,38 +12,36 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ChatViewModel @Inject constructor() : ViewModel() {
-    private var _messages = mutableStateOf(SocketData.pullAllMessage(""))
+    private var _messages = mutableStateOf(IrcData.pullAllMessage(""))
     val messages: State<List<String>> get() = _messages
 
     private var _users = mutableStateOf(listOf<String>())
     val users: State<List<String>> get() = _users
 
-    val activeChat: String = SocketData.getActiveChat()
+    val activeChat: String = IrcData.getActiveChat()
 
     private var _stopTracking = mutableStateOf(false)
 
     init { listenChatData() }
 
-    fun fetchUserList() { _users.value = SocketData.getUser("") }
+    fun fetchUserList() { _users.value = IrcData.getUser("") }
 
     private fun listenChatData() {
         viewModelScope.launch {
             while (!_stopTracking.value) {
-                _messages.value += SocketData.pullMessage("")
+                _messages.value += IrcData.pullMessage("")
 
                 delay(100)
             }
         }
     }
 
-    fun parseMatchData() {
-        val data = ""
+    fun parseMatchData(data: String) {
         val splitData = data.split("\n")
-        MatchManager.addMatch(splitData[0].toInt(), splitData)
+        IrcData.parseMatchData(splitData)
     }
 
-    fun saveMatchData(matchID: Int) {
-        val matchData = MatchManager.getMatch(matchID)
-        matchData.redScore = 0
+    fun saveMatchData(): String? {
+        return null
     }
 }

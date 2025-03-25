@@ -2,7 +2,6 @@ package com.chat4osu.activity
 
 import android.content.Intent
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -15,7 +14,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -26,7 +24,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.SaveAs
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -39,7 +36,6 @@ import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxState
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -51,11 +47,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.chat4osu.di.Config
-import com.chat4osu.di.SocketData
+import com.chat4osu.global.Config
+import com.chat4osu.global.IrcData
+import com.chat4osu.global.Utils.Companion.InputDialog
+import com.chat4osu.global.Utils.Companion.showToast
 import com.chat4osu.ui.theme.Black
 import com.chat4osu.ui.theme.Chat4osuTheme
 import com.chat4osu.ui.theme.DarkWhite
@@ -156,8 +153,8 @@ class SelectActivity: ComponentActivity() {
                     ) { _, name ->
                         SwipeButton(
                             name = name,
-                            onRemove = SocketData::removeChat,
-                            onArchive = SocketData::archiveChat
+                            onRemove = IrcData::removeChat,
+                            onArchive = IrcData::archiveChat
                         )
                     }
                 }
@@ -165,10 +162,11 @@ class SelectActivity: ComponentActivity() {
         )
 
         if (showDialog) {
-            ShowDialog(
+            InputDialog(
+                text = "Enter channel name",
                 onDismiss = { showDialog = false },
                 onSubmit = { input ->
-                    SocketData.readInput("/join $input", input)
+                    IrcData.readInput("/join $input", input)
                     navigateToActivity(ChatActivity())
                 }
             )
@@ -218,17 +216,15 @@ class SelectActivity: ComponentActivity() {
                 when (it) {
                     SwipeToDismissBoxValue.StartToEnd -> {
                         onRemove(name)
-                        Toast.makeText(context, "Chat Deleted: $name", Toast.LENGTH_SHORT).show()
+                        showToast(context, "Chat Deleted: $name")
                     }
                     SwipeToDismissBoxValue.EndToStart -> {
                         val path: String? = onArchive(name)
                         if (path == null) {
-                            Toast.makeText(context, "Failed to save chat log", Toast.LENGTH_SHORT)
-                                .show()
+                            showToast(context, "Failed to save chat log")
                         }
                         else {
-                            Toast.makeText(context, "Chat log saved at: $path", Toast.LENGTH_SHORT)
-                                .show()
+                            showToast(context, "Chat log saved at: $path")
                         }
                     }
                     SwipeToDismissBoxValue.Settled -> return@rememberSwipeToDismissBoxState false
@@ -245,47 +241,11 @@ class SelectActivity: ComponentActivity() {
                 Button(
                     modifier = Modifier.fillMaxSize(),
                     onClick = {
-                        SocketData.setActiveChat(name)
+                        IrcData.setActiveChat(name)
                         navigateToActivity(ChatActivity())
                     }
                 ) {
                     Text(text = name)
-                }
-            }
-        )
-    }
-
-    @Composable
-    fun ShowDialog(
-        onDismiss: () -> Unit,
-        onSubmit: (String) -> Unit
-    ) {
-        var text by remember { mutableStateOf(TextFieldValue()) }
-
-        AlertDialog(
-            onDismissRequest = { onDismiss() },
-            title = { Text("Enter Your Input") },
-            text = {
-                TextField(
-                    value = text,
-                    onValueChange = { newText -> text = newText },
-                    label = { Text("Enter channel name") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        onSubmit(text.text)
-                    }
-                ) {
-                    Text("OK")
-                }
-            },
-            dismissButton = {
-                Button(onClick = { onDismiss() }) {
-                    Text("Cancel")
                 }
             }
         )

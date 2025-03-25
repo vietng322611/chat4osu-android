@@ -1,4 +1,4 @@
-package com.chat4osu.osuIRC
+package com.chat4osu.types
 
 import android.os.Environment
 import android.util.Log
@@ -12,10 +12,13 @@ import java.util.concurrent.ConcurrentSkipListSet
 import java.util.concurrent.locks.Lock
 import java.util.concurrent.locks.ReentrantLock
 
-class Channel(var name: String) {
+class Channel() {
     private val lock: Lock = ReentrantLock()
 
-    var type = ""
+    private lateinit var name: String
+    private lateinit var type: String
+    private var id = 0
+
     private val userList = ConcurrentSkipListSet<String>()
     private val message = mutableListOf<String>()
     private val messageOnStage = mutableListOf<String>()
@@ -25,11 +28,27 @@ class Channel(var name: String) {
         Regex("BanchoBot : (.*) left the game.") to { match: String -> removeUser(match) }
     )
 
+    constructor(name: String) : this() {
+        this.name = name
+        type = if (name.startsWith("#mp_")) {
+            "lobby"
+        } else if (name.startsWith("#")) {
+            "chat"
+        } else {
+            "DM"
+        }
+        if (type == "lobby")
+            id = name.split("_")[1].toInt()
+    }
+
     val getUser: Set<String>
         get() = userList
 
     val getType: String
         get() = type
+
+    val getId: Int
+        get() = id
 
     fun update(data: List<String?>) {
         val message = String.format(

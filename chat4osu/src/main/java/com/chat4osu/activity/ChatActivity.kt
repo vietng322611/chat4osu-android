@@ -79,8 +79,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.chat4osu.di.Config
-import com.chat4osu.di.SocketData
+import com.chat4osu.global.Config
+import com.chat4osu.global.IrcData
+import com.chat4osu.global.Utils.Companion.InputDialog
+import com.chat4osu.global.Utils.Companion.showToast
 import com.chat4osu.ui.theme.Black
 import com.chat4osu.ui.theme.Chat4osuTheme
 import com.chat4osu.ui.theme.DarkBlue
@@ -95,6 +97,8 @@ import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class ChatActivity: ComponentActivity() {
+    private val context = application
+
     private lateinit var username: String
     private val chatVM: ChatViewModel by viewModels()
     private val isDarkTheme = Config.getKey("darkMode").toBoolean()
@@ -113,7 +117,7 @@ class ChatActivity: ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
-        username = SocketData.getRoot()
+        username = IrcData.getRoot()
     }
 
     @Preview(apiLevel = 34)
@@ -132,6 +136,8 @@ class ChatActivity: ComponentActivity() {
         val listState = rememberLazyListState()
         val listHeightState = remember { mutableStateOf(false) }
         val isMenuVisible = remember { mutableStateOf(false) }
+
+        val showDialog = remember { mutableStateOf(false) }
 
         LaunchedEffect(messages.size, listHeightState.value) {
             listState.animateScrollToItem(index = messages.size)
@@ -188,18 +194,46 @@ class ChatActivity: ComponentActivity() {
                             messages = messages
                         )
 
-                        BottomBar(
+                        Column(
                             modifier = Modifier
                                 .padding(bottom = 5.dp)
                                 .navigationBarsPadding()
-                                .imePadding(),
-                            msg = msgInput,
-                            isMenuVisible = isMenuVisible
-                        )
+                                .imePadding()
+                        ) {
+                            BottomBar(
+                                modifier = Modifier.drawBehind {
+                                    drawLine(
+                                        color = if (isDarkTheme) DarkWhite else Black,
+                                        start = Offset(0f, 0f),
+                                        end = Offset(size.width, 0f),
+                                        strokeWidth = 4f
+                                    )
+                                },
+                                msg = msgInput,
+                                isMenuVisible = isMenuVisible,
+                            )
+                            BottomMenu(
+                                modifier = Modifier.padding(8.dp),
+                                isMenuVisible = isMenuVisible,
+                                showDialog = showDialog
+                            )
+                        }
                     }
                 }
             }
         }
+
+        if (showDialog.value) {
+            InputDialog(
+                text = "Add match data",
+                onDismiss = { showDialog.value = false },
+                onSubmit = { data ->
+                    chatVM.parseMatchData(data)
+                    showDialog.value = false
+                }
+            )
+        }
+
     }
 
     @Composable
@@ -232,7 +266,12 @@ class ChatActivity: ComponentActivity() {
     }
 
     @Composable
-    fun TopBar(modifier: Modifier = Modifier, coroutineScope: CoroutineScope, drawerState: DrawerState, chatName: String = "Test") {
+    fun TopBar(
+        modifier: Modifier = Modifier,
+        coroutineScope: CoroutineScope,
+        drawerState: DrawerState,
+        chatName: String = "Test"
+    ) {
         Row(
             modifier = modifier,
             verticalAlignment = Alignment.Bottom
@@ -264,7 +303,7 @@ class ChatActivity: ComponentActivity() {
                 )
             )
 
-            if (SocketData.getActiveChatType() != "DM") {
+            if (IrcData.getActiveChatType() != "DM") {
                 IconButton(
                     onClick = {
                         chatVM.fetchUserList()
@@ -288,7 +327,11 @@ class ChatActivity: ComponentActivity() {
     }
 
     @Composable
-    fun MessageView(modifier: Modifier = Modifier, listState: LazyListState, messages: List<String>) {
+    fun MessageView(
+        modifier: Modifier = Modifier,
+        listState: LazyListState,
+        messages: List<String>
+    ) {
         return LazyColumn(
             modifier = modifier,
             state = listState,
@@ -315,104 +358,106 @@ class ChatActivity: ComponentActivity() {
         msg: MutableState<TextFieldValue>,
         isMenuVisible: MutableState<Boolean>
     ) {
-        Column(
-            modifier = modifier
+        Row(
+            modifier = modifier,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.drawBehind {
-                    drawLine(
-                        color = if (isDarkTheme) DarkWhite else Black,
-                        start = Offset(0f, 0f),
-                        end = Offset(size.width, 0f),
-                        strokeWidth = 4f
+            IconButton(
+                onClick = { isMenuVisible.value = !isMenuVisible.value },
+                content = {
+                    Icon(
+                        imageVector = Icons.Filled.Menu,
+                        contentDescription = "Show online players",
+                        tint = if (isDarkTheme) DarkWhite else Black
+                    )
+                }
+            )
+            TextField(
+                value = msg.value,
+                onValueChange = { msg.value = it },
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(8.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = TextFieldDefaults.colors(
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
+                    disabledIndicatorColor = Color.Transparent
+                ),
+                placeholder = { Text("Enter your message...") },
+                singleLine = true
+            )
+            IconButton(
+                onClick = {
+                    IrcData.readInput(msg.value.text, chatVM.activeChat)
+                    msg.value = TextFieldValue()
+                },
+                enabled = msg.value.text.isNotEmpty(),
+                content = {
+                    Icon(
+                        Icons.AutoMirrored.Filled.Send,
+                        contentDescription = "Send",
+                        tint = if (isDarkTheme) DarkWhite else Black
                     )
                 },
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(
-                    onClick = { isMenuVisible.value = !isMenuVisible.value },
-                    content = {
-                        Icon(
-                            imageVector = Icons.Filled.Menu,
-                            contentDescription = "Show online players",
-                            tint = if (isDarkTheme) DarkWhite else Black
-                        )
-                    }
-                )
-                TextField(
-                    value = msg.value,
-                    onValueChange = { msg.value = it },
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(8.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = TextFieldDefaults.colors(
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent,
-                        disabledIndicatorColor = Color.Transparent
-                    ),
-                    placeholder = { Text("Enter your message...") },
-                    singleLine = true
-                )
-                IconButton(
-                    onClick = {
-                        SocketData.readInput(msg.value.text, chatVM.activeChat)
-                        msg.value = TextFieldValue()
-                    },
-                    enabled = msg.value.text.isNotEmpty(),
-                    content = {
-                        Icon(
-                            Icons.AutoMirrored.Filled.Send,
-                            contentDescription = "Send",
-                            tint = if (isDarkTheme) DarkWhite else Black
-                        )
-                    },
-                )
-            }
-            AnimatedVisibility(
-                modifier = Modifier.padding(8.dp),
-                visible = isMenuVisible.value,
-                enter = expandVertically(expandFrom = Alignment.Top),
-                exit = shrinkVertically(shrinkTowards = Alignment.Top)
-            ) {
-                BottomMenu()
-            }
+            )
         }
     }
 
     @Composable
-    fun BottomMenu() {
-        Row(
-            modifier = Modifier.wrapContentSize(),
-            verticalAlignment = Alignment.Top,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+    fun BottomMenu(
+        modifier: Modifier = Modifier,
+        isMenuVisible: MutableState<Boolean>,
+        showDialog: MutableState<Boolean>
+    ) {
+        AnimatedVisibility(
+            modifier = modifier,
+            visible = isMenuVisible.value,
+            enter = expandVertically(expandFrom = Alignment.Top),
+            exit = shrinkVertically(shrinkTowards = Alignment.Top)
         ) {
-            OutlinedIconButton(
-                onClick = { chatVM.parseMatchData() },
-                modifier = Modifier.height(45.dp).width(45.dp),
-                shape = RoundedCornerShape(5.dp),
-                border = BorderStroke(2.dp, if (isDarkTheme) DarkWhite else Black),
-                content = {
-                    Icon(
-                        Icons.Filled.Add,
-                        contentDescription = "Add match data",
-                        tint = if (isDarkTheme) DarkWhite else Black
-                    )
-                }
-            )
-            OutlinedIconButton(
-                onClick = { chatVM.saveMatchData(0) },
-                modifier = Modifier.height(45.dp).width(45.dp),
-                shape = RoundedCornerShape(5.dp),
-                border = BorderStroke(2.dp, if (isDarkTheme) DarkWhite else Black),
-                content = {
-                    Icon(
-                        Icons.Filled.Download,
-                        contentDescription = "Save match",
-                        tint = if (isDarkTheme) DarkWhite else Black
-                    )
-                }
-            )
+            Row(
+                modifier = Modifier.wrapContentSize(),
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                OutlinedIconButton(
+                    onClick = { showDialog.value = true },
+                    modifier = Modifier
+                        .height(45.dp)
+                        .width(45.dp),
+                    shape = RoundedCornerShape(5.dp),
+                    border = BorderStroke(2.dp, if (isDarkTheme) DarkWhite else Black),
+                    content = {
+                        Icon(
+                            Icons.Filled.Add,
+                            contentDescription = "Add match data",
+                            tint = if (isDarkTheme) DarkWhite else Black
+                        )
+                    }
+                )
+                OutlinedIconButton(
+                    onClick = {
+                        val path: String? = chatVM.saveMatchData()
+                        if (path == null)
+                            showToast(context, "Failed to save match data")
+                        else
+                            showToast(context, "Match data saved at: $path")
+                    },
+                    modifier = Modifier
+                        .height(45.dp)
+                        .width(45.dp),
+                    shape = RoundedCornerShape(5.dp),
+                    border = BorderStroke(2.dp, if (isDarkTheme) DarkWhite else Black),
+                    content = {
+                        Icon(
+                            Icons.Filled.Download,
+                            contentDescription = "Save match",
+                            tint = if (isDarkTheme) DarkWhite else Black
+                        )
+                    }
+                )
+            }
         }
     }
 

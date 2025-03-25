@@ -1,5 +1,7 @@
 package com.chat4osu.osuIRC
 
+import com.chat4osu.types.NoSuchChannel
+
 /*
 * :cho.ppy.sh 353 [nick] = [channel_name] :[name_list]
 * :[name]!cho@ppy.sh PRIVMSG [channel_name] :[message]

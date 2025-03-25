@@ -1,12 +1,13 @@
-package com.chat4osu.di
+package com.chat4osu.global
 
+import com.chat4osu.osuIRC.global.Manager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import com.chat4osu.osuIRC.OsuSocket
 
-class SocketData {
+class IrcData {
     companion object {
-        private val osuSocket = OsuSocket()
+        private var osuSocket = OsuSocket()
 
         private val patterns = listOf(
             Regex("/raw (.*)") to { match: String -> sendRaw(match) },
@@ -30,84 +31,83 @@ class SocketData {
                     return
                 }
             }
-
             send(input, channel)
         }
 
         private fun send(message: String, channel: String) {
-            osuSocket.manager.update(listOf(
+            Manager.update(listOf(
                 "1",
                 channel,
-                osuSocket.manager.nick,
+                Manager.nick,
                 message
             ))
-            osuSocket.send("PRIVMSG ${osuSocket.manager.activeChat} $message")
-        }
-
-        private fun getChat(name: String) {
-            if (name.startsWith("#")) {
-                osuSocket.join(name)
-            } else {
-                osuSocket.manager.addChat(name)
-                setActiveChat(name)
-            }
+            osuSocket.send("PRIVMSG ${Manager.activeChat} $message")
         }
 
         private fun sendRaw(msg: String) {
             osuSocket.send(msg)
         }
 
-        fun pullMessage(channelName: String): List<String> {
-            osuSocket.manager.getChannel(channelName)?.let {
-                return it.pullMessage()
+        private fun getChat(name: String) {
+            if (name.startsWith("#")) {
+                osuSocket.join(name)
+            } else {
+                Manager.addChat(name)
+                setActiveChat(name)
             }
-            return listOf()
         }
 
-        fun pullAllMessage(channelName: String): List<String> {
-            osuSocket.manager.getChannel(channelName)?.let {
-                return it.pullAllMessage()
-            }
-            return listOf()
-        }
+        fun getRoot(): String { return Manager.nick }
 
-        fun getUser(channelName: String): List<String> {
-            osuSocket.manager.getChannel(channelName)?.let {
-                return it.getUser.toList()
-            }
-            return listOf()
-        }
-
-        fun getRoot(): String {
-            return osuSocket.manager.nick
-        }
-
-        fun getActiveChat(): String {
-            return osuSocket.manager.activeChat
-        }
+        fun getActiveChat(): String { return Manager.activeChat }
 
         fun getActiveChatType(): String {
-            osuSocket.manager.getChannel("")?.let {
+            Manager.getChat("")?.let {
                 return it.getType
             }
             return ""
         }
 
         fun getAllChat(): List<String> {
-            return osuSocket.manager.allChat
+            return Manager.chatList
+        }
+
+        fun getUser(channelName: String): List<String> {
+            Manager.getChat(channelName)?.let {
+                return it.getUser.toList()
+            }
+            return listOf()
+        }
+
+        fun pullMessage(channelName: String): List<String> {
+            Manager.getChat(channelName)?.let {
+                return it.pullMessage()
+            }
+            return listOf()
+        }
+
+        fun pullAllMessage(channelName: String): List<String> {
+            Manager.getChat(channelName)?.let {
+                return it.pullAllMessage()
+            }
+            return listOf()
         }
 
         fun setActiveChat(name: String) {
-            osuSocket.manager.activeChat = name
+            Manager.activeChat = name
         }
 
         fun archiveChat(name: String): String? {
-            val outputFile = osuSocket.archiveChat(name)
+            val outputFile = Manager.archiveChat(name)
             return outputFile
         }
 
         fun removeChat(name: String) {
             osuSocket.part(name)
+        }
+
+        fun parseMatchData(data: List<String>) {
+            Manager.parseMatchData(data)
         }
     }
 }

@@ -2,6 +2,8 @@ package com.chat4osu.osuIRC
 
 import android.util.Log
 import androidx.compose.runtime.mutableStateOf
+import com.chat4osu.osuIRC.global.Manager
+import com.chat4osu.types.NoSuchChannel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -19,7 +21,6 @@ class OsuSocket {
     private val fatal = mutableStateOf(false)
     private val scope = CoroutineScope(Dispatchers.IO)
 
-    val manager = Manager()
     private lateinit var socket: Socket
     private lateinit var writer: BufferedWriter
     private lateinit var reader: BufferedReader
@@ -72,8 +73,8 @@ class OsuSocket {
                 if (authenticated) break
             }
 
-            manager.nick = nick
-            manager.pass = pass
+            Manager.nick = nick
+            Manager.pass = pass
 
             if (!pipeBroken) {
                 recv()
@@ -93,7 +94,7 @@ class OsuSocket {
 
     private fun reconnect() {
         scope.launch {
-            val code = connect(manager.nick, manager.pass)
+            val code = connect(Manager.nick, Manager.pass)
             if (code != 0) fatal.value = true
         }
     }
@@ -120,12 +121,12 @@ class OsuSocket {
                     if (msg == "PING cho.ppy.sh") send(msg)
 
                     val parsedMessage = StringUtils.parse(msg)
-                    manager.update(parsedMessage)
+                    Manager.update(parsedMessage)
                 } catch (e: IOException) {
                     Log.e("OsuSocket", "recv: " + e.message)
                     pipeBroken = true
                 } catch (e: NoSuchChannel) {
-                    manager.removeChat("")
+                    Manager.removeChat("")
                     Log.e("OsuSocket", "recv: " + e.message)
                 }
 
@@ -150,27 +151,14 @@ class OsuSocket {
     }
 
     fun join(name: String) {
-        if (manager.getChannel(name) == null) send("JOIN $name")
-        manager.activeChat = name
+        if (Manager.getChat(name) == null) send("JOIN $name")
+        Manager.activeChat = name
     }
 
     fun part(name: String) {
-        if (manager.getChannel(name) != null) {
+        if (Manager.getChat(name) != null) {
             send("PART $name")
-            manager.removeChat(name)
+            Manager.removeChat(name)
         }
-    }
-
-    fun archiveChat(name: String): String? {
-        val channel = manager.getChannel(name)
-        if (channel == null) return channel
-
-        part(name)
-        val outputFile = channel.archiveChat()
-        if (outputFile != null) {
-            manager.removeChat(name)
-        }
-
-        return outputFile
     }
 }

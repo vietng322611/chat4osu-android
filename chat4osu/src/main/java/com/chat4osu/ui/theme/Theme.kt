@@ -12,7 +12,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
-import com.chat4osu.di.Config
+import com.chat4osu.global.Config
 
 private val DarkColorScheme = darkColorScheme(
     primary = Color(0xFF005AC0),

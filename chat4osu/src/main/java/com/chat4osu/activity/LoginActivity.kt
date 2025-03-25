@@ -2,7 +2,6 @@ package com.chat4osu.activity
 
 import android.content.Intent
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -44,10 +43,11 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.chat4osu.R
-import com.chat4osu.di.Config
+import com.chat4osu.global.Config
+import com.chat4osu.global.Utils.Companion.showToast
 import com.chat4osu.ui.theme.Black
-import com.chat4osu.ui.theme.DarkGray
 import com.chat4osu.ui.theme.Chat4osuTheme
+import com.chat4osu.ui.theme.DarkGray
 import com.chat4osu.ui.theme.Gray
 import com.chat4osu.ui.theme.White
 import com.chat4osu.viewmodel.LoginViewModel
@@ -57,6 +57,7 @@ import kotlinx.coroutines.launch
 @AndroidEntryPoint
 class LoginActivity : ComponentActivity() {
     private val loginVM: LoginViewModel by viewModels()
+    private val context = application
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -220,21 +221,21 @@ class LoginActivity : ComponentActivity() {
                 loginVM.loginEvent.collect { event ->
                     when (event) {
                         is LoginViewModel.LoginEvent.ErrorInvalidInput -> {
-                            showToast("Invalid username/password.")
+                            showToast(context, "Invalid username/password.")
                         }
 
                         is LoginViewModel.LoginEvent.ErrorSavingCredential -> {
                             val errorMessage = event.error
-                            showToast("Couldn't saved credential. Error: $errorMessage")
+                            showToast(context, "Couldn't saved credential. Error: $errorMessage")
                         }
 
                         is LoginViewModel.LoginEvent.ErrorLogin -> {
                             val errorMessage = event.error
-                            showToast("Error: $errorMessage.")
+                            showToast(context, "Error: $errorMessage.")
                         }
 
                         is LoginViewModel.LoginEvent.Success -> {
-                            showToast("Login Successful.")
+                            showToast(context, "Login Successful.")
                             navigateToSelect()
                         }
                     }
@@ -247,9 +248,5 @@ class LoginActivity : ComponentActivity() {
         val intent = Intent(this, SelectActivity::class.java)
         startActivity(intent)
         finish()
-    }
-
-    private fun showToast(msg: String) {
-        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
     }
 }
