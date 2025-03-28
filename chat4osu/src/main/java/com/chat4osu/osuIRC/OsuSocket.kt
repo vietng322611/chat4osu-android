@@ -80,7 +80,7 @@ class OsuSocket {
                 recv()
                 keepAlive()
             }
-            join("BanchoBot")
+            Manager.addChat("BanchoBot")
 
             return 0
         } catch (e: IOException) {
