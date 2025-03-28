@@ -6,7 +6,7 @@ import com.chat4osu.types.MatchData
 
 class Manager {
     companion object {
-        private val _chatList: MutableMap<String, Channel?> = HashMap()
+        private val _chatList: MutableMap<String, Channel> = HashMap()
         private val _matchList: MutableMap<Int, MatchData> = HashMap()
 
         private var _nick = ""
@@ -28,8 +28,13 @@ class Manager {
         val chatList: List<String>
             get() = ArrayList(_chatList.keys)
 
-        val matchList: List<Int>
-            get() = ArrayList(_matchList.keys)
+        fun clear() {
+            _chatList.clear()
+            _matchList.clear()
+            _nick = ""
+            _pass = ""
+            _activeChat = ""
+        }
 
         fun getChat(name: String): Channel? {
             return if (name.isEmpty())
@@ -93,8 +98,17 @@ class Manager {
             return outputFile
         }
 
-        fun parseMatchData(data: List<String>) {
-            /*NOT IMPLEMENTED*/
+        fun parseMatchData(data: List<String>, chatName: String): Int {
+            val match = getMatch(chatName)
+            return match?.parseMatchData(data) ?: -1
+        }
+
+        fun getMatch(chatName: String): MatchData? {
+            _chatList[chatName]?.let {
+                val id = it.getId
+                return _matchList[id]
+            }
+            return null
         }
     }
 }

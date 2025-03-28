@@ -1,18 +1,28 @@
 package com.chat4osu.global
 
+import android.util.Log
+import com.chat4osu.global.customRegex.ReflectiveAction
+import com.chat4osu.global.customRegex.UniversalAction
+import com.chat4osu.osuIRC.OsuSocket
 import com.chat4osu.osuIRC.global.Manager
+import com.chat4osu.types.MatchData
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import com.chat4osu.osuIRC.OsuSocket
 
 class IrcData {
     companion object {
         private var osuSocket = OsuSocket()
 
         private val patterns = listOf(
-            Regex("/raw (.*)") to { match: String -> sendRaw(match) },
-            Regex("/join (.*)") to { match: String -> getChat(match) },
-            Regex("/part #(.*)") to { match: String -> osuSocket.part("#$match") }
+            Regex("/raw (.*)") to  { text: String -> sendRaw(text) },
+            Regex("/join (.*)") to  { name: String -> getChat(name) },
+            Regex("/part #(.*)") to  { name: String -> osuSocket.part("#$name") },
+            Regex("/set") to { setMatchRule() },
+            Regex("/pick (.*)") to  { pick: String -> pickMap(pick) },
+            Regex("/timer (\\d+) [\\w\\s]+") to  { time: Int, text: String -> setTimer(time, text) },
+            Regex("/start (\\d+) [\\w\\s]+") to  { time: Int, text: String -> startMatch(time, text) },
+            Regex("/score \\d") to  { team: Int -> setScore(team) },
+            Regex("/unscore \\d") to  { team: Int -> undoScore(team) },
         )
 
         suspend fun connect(nick: String, pass: String): Int {
@@ -21,26 +31,30 @@ class IrcData {
             }
         }
 
-        fun readInput(input: String, channel: String) {
+        fun readInput(input: String) {
             for ((pattern, action) in patterns) {
-                if (!pattern.matches(input)) continue
-
-                val match = pattern.find(input)
-                if (match != null) {
-                    action(match.groupValues[1])
-                    return
+                val match = pattern.find(input) ?: continue
+                val groups = match.groupValues.drop(1)
+                when (action) {
+                    is UniversalAction -> action.invoke(groups)
+                    else -> ReflectiveAction(action).invoke(groups)
                 }
+                return
             }
-            send(input, channel)
+            send(input)
         }
 
-        private fun send(message: String, channel: String) {
+        private fun updateMessage(message: String) {
             Manager.update(listOf(
                 "1",
-                channel,
+                Manager.activeChat,
                 Manager.nick,
                 message
             ))
+        }
+
+        private fun send(message: String) {
+            updateMessage(message)
             osuSocket.send("PRIVMSG ${Manager.activeChat} $message")
         }
 
@@ -97,7 +111,7 @@ class IrcData {
             Manager.activeChat = name
         }
 
-        fun archiveChat(name: String): String? {
+        fun saveChatLog(name: String): String? {
             val outputFile = Manager.archiveChat(name)
             return outputFile
         }
@@ -106,8 +120,59 @@ class IrcData {
             osuSocket.part(name)
         }
 
-        fun parseMatchData(data: List<String>) {
-            Manager.parseMatchData(data)
+        fun parseMatchData(data: List<String>, chat: String): Int {
+            return Manager.parseMatchData(data, chat)
+        }
+
+        fun logout() {
+            Manager.clear()
+            osuSocket.logout()
+        }
+
+        private fun getMatch(name: String): MatchData? {
+            val match = Manager.getMatch(name)
+            if (match == null) {
+                updateMessage("Failed to get match data")
+                Log.d("getMatch", "Lobby $name has no match data")
+                return null
+            }
+            return match
+        }
+
+        private fun setMatchRule() {
+            val match = getMatch(Manager.activeChat) ?: return
+            send(match.matchRules)
+        }
+
+        private fun pickMap(pick: String) {
+            val match = Manager.getMatch(Manager.activeChat) ?: return
+            val commands = match.getPick(pick)
+            if (commands == null) {
+                updateMessage("Pick $pick not found")
+                return
+            }
+            for (command in commands)
+                send(command)
+        }
+
+        private fun setTimer(time: Int = 90, text: String) {
+            send("!mp timer $time $text")
+        }
+
+        private fun startMatch(time: Int = 10, text: String) {
+            send("!mp start $time $text")
+        }
+
+        private fun setScore(team: Int) {
+            val match = getMatch(Manager.activeChat) ?: return
+            if (team == 0) match.redScore = 1 // increase by 1
+            else match.blueScore = 1
+        }
+
+        private fun undoScore(team: Int) {
+            val match = getMatch(Manager.activeChat) ?: return
+            if (team == 0) match.redScore = -1 // decrease by 1
+            else match.blueScore = -1
         }
     }
 }

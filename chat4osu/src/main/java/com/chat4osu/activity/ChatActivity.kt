@@ -37,6 +37,7 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.HorizontalDivider
@@ -62,6 +63,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalFocusManager
@@ -89,6 +91,7 @@ import com.chat4osu.ui.theme.DarkBlue
 import com.chat4osu.ui.theme.DarkPurple
 import com.chat4osu.ui.theme.DarkWhite
 import com.chat4osu.ui.theme.LightBlue
+import com.chat4osu.ui.theme.WhiteWhite
 import com.chat4osu.viewmodel.ChatViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -97,8 +100,6 @@ import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class ChatActivity: ComponentActivity() {
-    private val context = application
-
     private lateinit var username: String
     private val chatVM: ChatViewModel by viewModels()
     private val isDarkTheme = Config.getKey("darkMode").toBoolean()
@@ -155,7 +156,8 @@ class ChatActivity: ComponentActivity() {
                         width = width,
                         users = users
                     )
-                }
+                },
+                gesturesEnabled = false
             ) {
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                     Column(
@@ -169,8 +171,8 @@ class ChatActivity: ComponentActivity() {
                     ) {
                         TopBar(
                             modifier = Modifier
-                                .height(90.dp)
-                                .background(DarkBlue)
+                                .height(95.dp)
+                                .background(if (isDarkTheme) DarkBlue else WhiteWhite)
                                 .drawBehind {
                                     drawLine(
                                         color = if (isDarkTheme) DarkWhite else Black,
@@ -196,6 +198,7 @@ class ChatActivity: ComponentActivity() {
 
                         Column(
                             modifier = Modifier
+                                .background(if (isDarkTheme) DarkBlue else WhiteWhite)
                                 .padding(bottom = 5.dp)
                                 .navigationBarsPadding()
                                 .imePadding()
@@ -215,7 +218,8 @@ class ChatActivity: ComponentActivity() {
                             BottomMenu(
                                 modifier = Modifier.padding(8.dp),
                                 isMenuVisible = isMenuVisible,
-                                showDialog = showDialog
+                                showDialog = showDialog,
+                                isLobby = IrcData.getActiveChatType() == "lobby"
                             )
                         }
                     }
@@ -228,9 +232,16 @@ class ChatActivity: ComponentActivity() {
                 text = "Add match data",
                 onDismiss = { showDialog.value = false },
                 onSubmit = { data ->
-                    chatVM.parseMatchData(data)
-                    showDialog.value = false
-                }
+                    val result = chatVM.parseMatchData(data)
+                    when (result) {
+                        0 -> {
+                            showToast(this, "Match data added successfully")
+                            showDialog.value = false
+                        }
+                        -1 -> showToast(this, "Invalid input")
+                    }
+                },
+                singleLine = false
             )
         }
 
@@ -298,7 +309,7 @@ class ChatActivity: ComponentActivity() {
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 style = TextStyle(
-                    fontSize = 23.sp,
+                    fontSize = 25.sp,
                     color = if (isDarkTheme) DarkWhite else Black
                 )
             )
@@ -315,7 +326,7 @@ class ChatActivity: ComponentActivity() {
                     },
                     content = {
                         Icon(
-                            modifier = Modifier.padding(5.dp),
+                            modifier = Modifier.padding(bottom = 5.dp),
                             imageVector = Icons.Filled.Menu,
                             contentDescription = "Show online players",
                             tint = if (isDarkTheme) DarkWhite else Black
@@ -343,6 +354,7 @@ class ChatActivity: ComponentActivity() {
                             text = buildString(text, isDarkTheme),
                             modifier = Modifier.padding(4.dp),
                             fontSize = textSize,
+                            fontWeight = W400,
                             maxLines = Int.MAX_VALUE,
                             overflow = TextOverflow.Visible,
                         )
@@ -389,7 +401,7 @@ class ChatActivity: ComponentActivity() {
             )
             IconButton(
                 onClick = {
-                    IrcData.readInput(msg.value.text, chatVM.activeChat)
+                    IrcData.readInput(msg.value.text)
                     msg.value = TextFieldValue()
                 },
                 enabled = msg.value.text.isNotEmpty(),
@@ -408,7 +420,8 @@ class ChatActivity: ComponentActivity() {
     fun BottomMenu(
         modifier: Modifier = Modifier,
         isMenuVisible: MutableState<Boolean>,
-        showDialog: MutableState<Boolean>
+        showDialog: MutableState<Boolean>,
+        isLobby: Boolean = false
     ) {
         AnimatedVisibility(
             modifier = modifier,
@@ -419,45 +432,69 @@ class ChatActivity: ComponentActivity() {
             Row(
                 modifier = Modifier.wrapContentSize(),
                 verticalAlignment = Alignment.Top,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.spacedBy(30.dp)
             ) {
-                OutlinedIconButton(
-                    onClick = { showDialog.value = true },
-                    modifier = Modifier
-                        .height(45.dp)
-                        .width(45.dp),
-                    shape = RoundedCornerShape(5.dp),
-                    border = BorderStroke(2.dp, if (isDarkTheme) DarkWhite else Black),
-                    content = {
-                        Icon(
-                            Icons.Filled.Add,
-                            contentDescription = "Add match data",
-                            tint = if (isDarkTheme) DarkWhite else Black
-                        )
-                    }
-                )
-                OutlinedIconButton(
+                if (isLobby) {
+                    ButtonWithDescription(
+                        onClick = { showDialog.value = true },
+                        description = "Add match",
+                        icon = Icons.Filled.Add
+                    )
+                    ButtonWithDescription(
+                        onClick = {
+                            val path: String? = chatVM.saveMatchData()
+                            if (path == null)
+                                showToast(this@ChatActivity, "Failed to save match data")
+                            else
+                                showToast(this@ChatActivity, "Match data saved at: $path")
+                        },
+                        description = "Save match",
+                        icon = Icons.Filled.Download
+                    )
+                }
+                ButtonWithDescription(
                     onClick = {
-                        val path: String? = chatVM.saveMatchData()
+                        val path: String? = chatVM.saveChatLog()
                         if (path == null)
-                            showToast(context, "Failed to save match data")
+                            showToast(this@ChatActivity, "Failed to save chat log")
                         else
-                            showToast(context, "Match data saved at: $path")
+                            showToast(this@ChatActivity, "Chat log saved at: $path")
                     },
-                    modifier = Modifier
-                        .height(45.dp)
-                        .width(45.dp),
-                    shape = RoundedCornerShape(5.dp),
-                    border = BorderStroke(2.dp, if (isDarkTheme) DarkWhite else Black),
-                    content = {
-                        Icon(
-                            Icons.Filled.Download,
-                            contentDescription = "Save match",
-                            tint = if (isDarkTheme) DarkWhite else Black
-                        )
-                    }
+                    description = "Save log",
+                    icon = Icons.Filled.Save
                 )
             }
+        }
+    }
+
+    @Composable
+    fun ButtonWithDescription(
+        onClick: () -> Unit,
+        description: String,
+        icon: ImageVector,
+    ) {
+        Column(
+          horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            OutlinedIconButton(
+                onClick = { onClick() },
+                modifier = Modifier
+                    .height(45.dp)
+                    .width(45.dp),
+                shape = RoundedCornerShape(5.dp),
+                border = BorderStroke(2.dp, if (isDarkTheme) DarkWhite else Black),
+                content = {
+                    Icon(
+                        icon,
+                        contentDescription = description,
+                        tint = if (isDarkTheme) DarkWhite else Black
+                    )
+                }
+            )
+            Text(
+                text = description,
+                color = if (isDarkTheme) DarkWhite else Black,
+                fontSize = 10.sp)
         }
     }
 

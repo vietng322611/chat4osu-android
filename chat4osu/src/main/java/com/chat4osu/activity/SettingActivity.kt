@@ -45,6 +45,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.chat4osu.global.Config
 import com.chat4osu.ui.theme.Black
 import com.chat4osu.ui.theme.Chat4osuTheme
@@ -87,7 +88,6 @@ class SettingActivity : ComponentActivity() {
             topBar = {
                 CenterAlignedTopAppBar(
                     modifier = Modifier
-                        .height(90.dp)
                         .drawBehind {
                             drawLine(
                                 color = if (darkTheme.value) DarkWhite else Black,
@@ -103,6 +103,7 @@ class SettingActivity : ComponentActivity() {
                         ) {
                             Text(
                                 "Settings",
+                                fontSize = 25.sp,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )

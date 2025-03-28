@@ -57,7 +57,6 @@ import kotlinx.coroutines.launch
 @AndroidEntryPoint
 class LoginActivity : ComponentActivity() {
     private val loginVM: LoginViewModel by viewModels()
-    private val context = application
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -221,21 +220,21 @@ class LoginActivity : ComponentActivity() {
                 loginVM.loginEvent.collect { event ->
                     when (event) {
                         is LoginViewModel.LoginEvent.ErrorInvalidInput -> {
-                            showToast(context, "Invalid username/password.")
+                            showToast(this@LoginActivity, "Invalid username/password.")
                         }
 
                         is LoginViewModel.LoginEvent.ErrorSavingCredential -> {
                             val errorMessage = event.error
-                            showToast(context, "Couldn't saved credential. Error: $errorMessage")
+                            showToast(this@LoginActivity, "Couldn't saved credential. Error: $errorMessage")
                         }
 
                         is LoginViewModel.LoginEvent.ErrorLogin -> {
                             val errorMessage = event.error
-                            showToast(context, "Error: $errorMessage.")
+                            showToast(this@LoginActivity, "Error: $errorMessage.")
                         }
 
                         is LoginViewModel.LoginEvent.Success -> {
-                            showToast(context, "Login Successful.")
+                            showToast(this@LoginActivity, "Login Successful.")
                             navigateToSelect()
                         }
                     }

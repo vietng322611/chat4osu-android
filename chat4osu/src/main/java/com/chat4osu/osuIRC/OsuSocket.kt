@@ -92,6 +92,15 @@ class OsuSocket {
         }
     }
 
+    fun logout() {
+        try {
+            send("QUIT")
+            socket.close()
+        } catch (e: IOException) {
+            Log.e("OsuSocket", "logout: " + e.message)
+        }
+    }
+
     private fun reconnect() {
         scope.launch {
             val code = connect(Manager.nick, Manager.pass)

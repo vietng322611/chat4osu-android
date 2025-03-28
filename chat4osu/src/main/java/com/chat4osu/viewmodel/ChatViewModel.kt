@@ -36,9 +36,13 @@ class ChatViewModel @Inject constructor() : ViewModel() {
         }
     }
 
-    fun parseMatchData(data: String) {
-        val splitData = data.split("\n")
-        IrcData.parseMatchData(splitData)
+    fun parseMatchData(data: String): Int {
+        val splitData = data.split("\r")
+        return IrcData.parseMatchData(splitData, activeChat)
+    }
+
+    fun saveChatLog(): String? {
+        return IrcData.saveChatLog("")
     }
 
     fun saveMatchData(): String? {

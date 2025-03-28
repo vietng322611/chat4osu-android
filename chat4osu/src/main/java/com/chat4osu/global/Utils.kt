@@ -25,7 +25,8 @@ class Utils {
         fun InputDialog(
             text: String,
             onDismiss: () -> Unit,
-            onSubmit: (String) -> Unit
+            onSubmit: (String) -> Unit,
+            singleLine: Boolean = true
         ) {
             var input by remember { mutableStateOf(TextFieldValue()) }
 
@@ -37,14 +38,15 @@ class Utils {
                         value = input,
                         onValueChange = { newText -> input = newText },
                         label = { Text("Type here") },
-                        singleLine = true,
+                        singleLine = singleLine,
                         modifier = Modifier.fillMaxWidth()
                     )
                 },
                 confirmButton = {
                     Button(
                         onClick = {
-                            onSubmit(input.text)
+                            if (input.text.isNotEmpty())
+                                onSubmit(input.text)
                         }
                     ) {
                         Text("OK")
@@ -58,5 +60,4 @@ class Utils {
             )
         }
     }
-
 }

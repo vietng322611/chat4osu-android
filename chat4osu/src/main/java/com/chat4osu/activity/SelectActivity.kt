@@ -7,22 +7,22 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.SaveAs
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -34,7 +34,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxState
-import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.SwipeToDismissBoxValue.EndToStart
+import androidx.compose.material3.SwipeToDismissBoxValue.Settled
+import androidx.compose.material3.SwipeToDismissBoxValue.StartToEnd
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
@@ -46,9 +48,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.chat4osu.global.Config
 import com.chat4osu.global.IrcData
 import com.chat4osu.global.Utils.Companion.InputDialog
@@ -56,6 +59,7 @@ import com.chat4osu.global.Utils.Companion.showToast
 import com.chat4osu.ui.theme.Black
 import com.chat4osu.ui.theme.Chat4osuTheme
 import com.chat4osu.ui.theme.DarkWhite
+import com.chat4osu.ui.theme.Red
 import com.chat4osu.viewmodel.SelectViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -76,7 +80,7 @@ class SelectActivity: ComponentActivity() {
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun ChatSelectScreen() {
-        BackHandler { navigateToActivity(LoginActivity()) }
+        BackHandler { logout() }
 
         val isDarkMode = Config.getKey("darkMode").toBoolean()
 
@@ -87,7 +91,6 @@ class SelectActivity: ComponentActivity() {
             topBar = {
                 CenterAlignedTopAppBar(
                     modifier = Modifier
-                        .height(90.dp)
                         .drawBehind {
                             drawLine(
                                 color = if (isDarkMode) DarkWhite else Black,
@@ -107,9 +110,7 @@ class SelectActivity: ComponentActivity() {
                     },
                     navigationIcon = {
                         Box(modifier = Modifier.fillMaxHeight(), contentAlignment = Alignment.Center) {
-                            IconButton(onClick = {
-                                navigateToActivity(LoginActivity())
-                            }) {
+                            IconButton(onClick = { logout() }) {
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                     contentDescription = "Back"
@@ -154,7 +155,6 @@ class SelectActivity: ComponentActivity() {
                         SwipeButton(
                             name = name,
                             onRemove = IrcData::removeChat,
-                            onArchive = IrcData::archiveChat
                         )
                     }
                 }
@@ -166,7 +166,7 @@ class SelectActivity: ComponentActivity() {
                 text = "Enter channel name",
                 onDismiss = { showDialog = false },
                 onSubmit = { input ->
-                    IrcData.readInput("/join $input", input)
+                    IrcData.readInput("/join $input")
                     navigateToActivity(ChatActivity())
                 }
             )
@@ -175,59 +175,35 @@ class SelectActivity: ComponentActivity() {
 
     @Composable
     fun DismissBackground(dismissState: SwipeToDismissBoxState) {
-        val state = when (dismissState.dismissDirection) {
-            SwipeToDismissBoxValue.StartToEnd -> true
-            SwipeToDismissBoxValue.EndToStart -> false
-            SwipeToDismissBoxValue.Settled -> null
+        val color = when (dismissState.dismissDirection) {
+            StartToEnd, EndToStart -> Red
+            Settled -> Color.Transparent
         }
 
         Row(
             modifier = Modifier
                 .fillMaxSize()
+                .background(color)
                 .padding(16.dp, 8.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            if (state == true) {
-                Icon(
-                    Icons.Default.Delete,
-                    contentDescription = "Delete"
-                )
-            }
-            Spacer(modifier = Modifier)
-            if (state == false) {
-                Icon(
-                    Icons.Default.SaveAs,
-                    contentDescription = "Save chat log"
-                )
-            }
-        }
+            horizontalArrangement = Arrangement.SpaceBetween,
+            content = {}
+        )
     }
 
     @Composable
     fun SwipeButton(
         name: String,
-        onRemove: (String) -> Unit,
-        onArchive: (String) -> String?
+        onRemove: (String) -> Unit
     ) {
-        val context = LocalContext.current
         val dismissState = rememberSwipeToDismissBoxState(
             confirmValueChange = {
                 when (it) {
-                    SwipeToDismissBoxValue.StartToEnd -> {
+                    StartToEnd, EndToStart -> {
                         onRemove(name)
-                        showToast(context, "Chat Deleted: $name")
+                        showToast(this@SelectActivity, "Chat Deleted: $name")
                     }
-                    SwipeToDismissBoxValue.EndToStart -> {
-                        val path: String? = onArchive(name)
-                        if (path == null) {
-                            showToast(context, "Failed to save chat log")
-                        }
-                        else {
-                            showToast(context, "Chat log saved at: $path")
-                        }
-                    }
-                    SwipeToDismissBoxValue.Settled -> return@rememberSwipeToDismissBoxState false
+                    Settled -> return@rememberSwipeToDismissBoxState false
                 }
                 return@rememberSwipeToDismissBoxState true
             },
@@ -239,16 +215,27 @@ class SelectActivity: ComponentActivity() {
             backgroundContent = { DismissBackground(dismissState) },
             content = {
                 Button(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .height(45.dp)
+                        .fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp),
                     onClick = {
                         IrcData.setActiveChat(name)
                         navigateToActivity(ChatActivity())
                     }
                 ) {
-                    Text(text = name)
+                    Text(
+                        text = name,
+                        fontSize = 18.sp
+                    )
                 }
             }
         )
+    }
+
+    private fun logout() {
+        IrcData.logout()
+        navigateToActivity(LoginActivity())
     }
 
     private fun navigateToActivity(activity: ComponentActivity) {
