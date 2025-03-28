@@ -80,6 +80,7 @@ class OsuSocket {
                 recv()
                 keepAlive()
             }
+            join("BanchoBot")
 
             return 0
         } catch (e: IOException) {
