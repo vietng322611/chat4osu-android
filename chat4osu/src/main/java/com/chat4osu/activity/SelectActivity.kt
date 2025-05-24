@@ -52,14 +52,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.chat4osu.global.Config
-import com.chat4osu.global.IrcData
-import com.chat4osu.global.Utils.Companion.InputDialog
-import com.chat4osu.global.Utils.Companion.showToast
+import com.chat4osu.config.Config
 import com.chat4osu.ui.theme.Black
 import com.chat4osu.ui.theme.Chat4osuTheme
 import com.chat4osu.ui.theme.DarkWhite
 import com.chat4osu.ui.theme.Red
+import com.chat4osu.utils.Utils.Companion.InputDialog
+import com.chat4osu.utils.Utils.Companion.showToast
 import com.chat4osu.viewmodel.SelectViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -154,7 +153,7 @@ class SelectActivity: ComponentActivity() {
                     ) { _, name ->
                         SwipeButton(
                             name = name,
-                            onRemove = IrcData::removeChat,
+                            onRemove = selectVM::removeChat,
                         )
                     }
                 }
@@ -166,7 +165,7 @@ class SelectActivity: ComponentActivity() {
                 text = "Enter channel name",
                 onDismiss = { showDialog = false },
                 onSubmit = { input ->
-                    IrcData.readInput("/join $input")
+                    selectVM.readInput("/join $input")
                     navigateToActivity(ChatActivity())
                 }
             )
@@ -220,7 +219,7 @@ class SelectActivity: ComponentActivity() {
                         .fillMaxWidth(),
                     shape = RoundedCornerShape(10.dp),
                     onClick = {
-                        IrcData.setActiveChat(name)
+                        selectVM.setActiveChat(name)
                         navigateToActivity(ChatActivity())
                     }
                 ) {
@@ -234,7 +233,7 @@ class SelectActivity: ComponentActivity() {
     }
 
     private fun logout() {
-        IrcData.logout()
+        selectVM.logout()
         navigateToActivity(LoginActivity())
     }
 

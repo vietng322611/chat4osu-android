@@ -1,4 +1,4 @@
-package com.chat4osu.global
+package com.chat4osu.config
 
 import android.content.Context
 import android.util.Log

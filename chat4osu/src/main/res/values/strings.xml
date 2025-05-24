@@ -3,5 +3,6 @@
     <string name="title_activity_login">Login</string>
     <string name="title_activity_chat">Chat</string>
     <string name="title_activity_select">Select</string>
-    <string name="title_activity_setting">Setting</string>"
+    <string name="title_activity_setting">Setting</string>
+    <string name="title_activity_match_config">MatchConfig</string>
 </resources>

@@ -1,8 +1,9 @@
 package com.chat4osu.types
 
+import com.chat4osu.utils.Utils
+
 class MatchData(id: Int) {
     private var _matchID = id
-    private var _lobbyName = ""
     private var _matchRules = ""
     private var _redTeam = ""
     private var _blueTeam = ""
@@ -12,17 +13,12 @@ class MatchData(id: Int) {
     private var _blueScore = 0
     private val _protects = mutableListOf<String>()
     private val _bans = mutableListOf<String>()
-    private val _playerPicks = mutableListOf<String>()
+    private val _redPicks = mutableListOf<String>()
+    private val _bluePicks = mutableListOf<String>()
     private val _picks = mutableMapOf<String, List<String>>()
 
     val matchRules: String
         get() = _matchRules
-
-    val redTeam: String
-        get() = _redTeam
-
-    val blueTeam: String
-        get() = _blueTeam
 
     var redScore: Int
         get() = _redScore
@@ -31,18 +27,6 @@ class MatchData(id: Int) {
     var blueScore: Int
         get() = _redScore
         set(value) { _blueScore += value }
-
-    val protects: List<String>
-        get() = _protects
-
-    val bans: List<String>
-        get() = _bans
-
-    val playerPicks: List<String>
-        get() = _playerPicks
-
-    val picks: Map<String, List<String>>
-        get() = _picks
 
     fun getPick(pick: String): List<String>? {
         return _picks[pick]
@@ -54,17 +38,15 @@ class MatchData(id: Int) {
         Regex("^(BlueTeam):([\\w\\s]+)"),
         Regex("^(RedPlayers):([\\w,]+)"),
         Regex("^(BluePlayers):([\\w,]+)"),
-        Regex("^(NM|HD|HR|DT|FM|TB)(\\d?):(!mp mods \\d(\\d?),!mp map (\\d+))"),
+        Regex("^(NM|HD|HR|DT|FM|TB)(\\d?):!mp mods (\\d+(\\s\\w+)?),!mp map (\\d+) (\\d)"),
     )
 
-    /*
-    * MatchRules:!mp set 2 3 11
-    * RedTeam:bb
-    * BlueTeam:aa
-    * RedPlayers:aa,bb,cc,...
-    * BluePlayers:aa,bb,cc,...
-    * NM1:!mp mods 1,!mp map 4874071 0
-    * */
+//    MatchRules:!mp set 2 3 11
+//    RedTeam:bb
+//    BlueTeam:aa
+//    RedPlayers:aa,bb,cc
+//    BluePlayers:aa,bb,cc
+//    NM1:!mp mods 1,!mp map 4874071 0
 
     fun parseMatchData(data: List<String>): Int {
         for (line in data) {
@@ -79,11 +61,43 @@ class MatchData(id: Int) {
                     "BluePlayers" -> _bluePlayers.addAll(groups[1].split(","))
                     else -> {
                         val pick = groups[0] + groups[1]
-                        _picks[pick] = groups[2].split(",")
+                        _picks[pick] = listOf(groups[2], groups[4], groups[5])
                     }
                 }
             }
         }
         return 0
+    }
+
+    fun exportMatchData(): Map<String, String> {
+        var maps = ""
+        // NM1,[id]
+        // NM2,[id]
+        for ((k, v) in _picks)
+            maps += "$k,${v[1]}\n"
+        return mapOf(
+            "Match ID" to _matchID.toString(),
+            "Match rules" to _matchRules,
+            "Red team" to _redTeam,
+            "Blue team" to _blueTeam,
+            "Red players" to _redPlayers.joinToString(","),
+            "Blue players" to _bluePlayers.joinToString(","),
+            "Red score" to _redScore.toString(),
+            "Blue score" to _blueScore.toString(),
+            "Protects" to _protects.joinToString(","),
+            "Bans" to _bans.joinToString(","),
+            "Red picks" to _redPicks.joinToString(","),
+            "Blue picks" to _bluePicks.joinToString(","),
+            "Maps" to maps.removeSuffix("\n"),
+        )
+    }
+
+    fun archiveMatch(): String? {
+        val dataExport = exportMatchData()
+        var content = ""
+        for ((key, value) in dataExport)
+            content += "$key: $value\n"
+
+        return Utils.saveFile("match_data_${_matchID}", content, "archiveMatch")
     }
 }

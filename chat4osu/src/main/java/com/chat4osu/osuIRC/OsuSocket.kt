@@ -2,13 +2,13 @@ package com.chat4osu.osuIRC
 
 import android.util.Log
 import androidx.compose.runtime.mutableStateOf
-import com.chat4osu.osuIRC.global.Manager
 import com.chat4osu.types.NoSuchChannel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.io.BufferedReader
 import java.io.BufferedWriter
 import java.io.IOException
@@ -16,29 +16,32 @@ import java.io.InputStreamReader
 import java.io.OutputStreamWriter
 import java.net.Socket
 import java.net.SocketTimeoutException
+import java.util.concurrent.atomic.AtomicBoolean
 
 class OsuSocket {
     private val fatal = mutableStateOf(false)
     private val scope = CoroutineScope(Dispatchers.IO)
+
+    // Use atomic boolean for thread-safe flag
+    private val pipeBroken = AtomicBoolean(false)
+    private val sendMutex = Mutex()
 
     private lateinit var socket: Socket
     private lateinit var writer: BufferedWriter
     private lateinit var reader: BufferedReader
 
     private var retryCount = 0
-    private var pipeBroken = false
 
-    @Throws(InterruptedException::class)
-    fun connect(nick: String, pass: String): Int {
+    suspend fun connect(nick: String, pass: String): Int {
         retryCount++
         try {
             socket = Socket("irc.ppy.sh", 6667)
             writer = BufferedWriter(OutputStreamWriter(socket.getOutputStream()))
             reader = BufferedReader(InputStreamReader(socket.getInputStream()))
         } catch (e: SocketTimeoutException) {
-            Thread.sleep(3000)
+            delay(3000)
             if (retryCount > 10) {
-                Log.e("OsuSocket", "connect: Connection timed out")
+                Log.e("OsuSocket", "connect: Connection timed out " + e.message)
                 return 2
             }
             return connect(nick, pass)
@@ -75,25 +78,20 @@ class OsuSocket {
 
             Manager.nick = nick
             Manager.pass = pass
-
-            if (!pipeBroken) {
-                recv()
-                keepAlive()
-            }
             Manager.addChat("BanchoBot")
+
+            pipeBroken.set(false)
+            recv()
+            keepAlive()
 
             return 0
         } catch (e: IOException) {
-            if (e.message != null) {
-                Log.e("OsuSocket", "connect: " + e.message)
-            } else {
-                Log.e("OsuSocket", "connect: Unknown error")
-            }
+            Log.e("OsuSocket", "connect: ${e.message ?: "Unknown error"}")
             return 3
         }
     }
 
-    fun logout() {
+    suspend fun logout() {
         try {
             send("QUIT")
             socket.close()
@@ -102,73 +100,74 @@ class OsuSocket {
         }
     }
 
-    private fun reconnect() {
-        scope.launch {
-            val code = connect(Manager.nick, Manager.pass)
-            if (code != 0) fatal.value = true
+    private suspend fun reconnect() {
+        val code = connect(Manager.nick, Manager.pass)
+        for (chat in Manager.chatList) {
+            if (!chat.startsWith("#")) continue
+            join(chat)
         }
+        if (code != 0) fatal.value = true
     }
 
-    private fun keepAlive() {
-        scope.launch {
-            while (true) {
-                if (!socket.isClosed) send("KEEP_ALIVE")
-                delay(30000)
-            }
-        }
-    }
-
-    private fun recv() {
-        scope.launch {
-            while (reader.ready() || !pipeBroken) {
-                try {
-                    val msg = reader.readLine()
-                    if (msg == null){
-                        delay(50)
-                        continue
-                    }
-//                    if (!msg.contains("QUIT")) Log.d("OsuSocket", "recv: $msg")
-                    if (msg == "PING cho.ppy.sh") send(msg)
-
-                    val parsedMessage = StringUtils.parse(msg)
-                    Manager.update(parsedMessage)
-                } catch (e: IOException) {
-                    Log.e("OsuSocket", "recv: " + e.message)
-                    pipeBroken = true
-                } catch (e: NoSuchChannel) {
-                    Manager.removeChat("")
-                    Log.e("OsuSocket", "recv: " + e.message)
-                }
-
-                delay(50)
-            }
-            reconnect()
-        }
-    }
-
-    fun send(message: String) = runBlocking {
-        val job = launch(Dispatchers.IO) {
+    private fun keepAlive() = scope.launch {
+        while (!socket.isClosed || !pipeBroken.get()) {
             try {
-                writer.write("$message\n")
-                writer.flush()
-                Log.d("OsuSocket", "send: $message")
-            } catch (e: IOException) {
-                Log.e("OsuSocket", "send: " + e.message)
-                pipeBroken = true
+                send("KEEP_ALIVE")
+                delay(30000)
+            } catch (e: Exception) {
+                Log.e("OsuSocket", "keepAlive: ${e.message}")
+                break
             }
         }
-        job.join()
     }
 
-    fun join(name: String) {
-        if (Manager.getChat(name) == null) send("JOIN $name")
+    private fun recv() = scope.launch {
+        while (!pipeBroken.get()) {
+            try {
+                val msg = reader.readLine()
+                if (msg == null) {
+                    delay(50)
+                    continue
+                }
+//              if (!msg.contains("QUIT")) Log.d("OsuSocket", "recv: $msg")
+                if (msg == "PING cho.ppy.sh") send(msg)
+
+                val parsedMessage = StringUtils.parse(msg)
+                Manager.update(parsedMessage)
+            } catch (e: NoSuchChannel) {
+                Manager.removeChat("")
+                Log.e("OsuSocket", "recv: " + e.message)
+            } catch (e: Exception) {
+                Log.e("OsuSocket", "recv: " + e.message)
+                pipeBroken.set(true)
+            }
+        }
+        reconnect()
+    }
+
+    suspend fun send(message: String) = sendMutex.withLock {
+        try {
+            writer.apply {
+                write("$message\n")
+                flush()
+            }
+            Log.d("OsuSocket", "send: $message")
+        } catch (e: IOException) {
+            Log.e("OsuSocket", "send: " + e.message)
+            pipeBroken.set(true)
+        }
+    }
+
+    suspend fun join(name: String) {
+        if (Manager.getChat(name) == null) {
+            Manager.addChat(name)
+            send("JOIN $name")
+        }
         Manager.activeChat = name
     }
 
-    fun part(name: String) {
-        if (Manager.getChat(name) != null) {
-            send("PART $name")
-            Manager.removeChat(name)
-        }
+    suspend fun part(name: String) {
+        if (Manager.getChat(name) != null) send("PART $name")
+        Manager.removeChat(name)
     }
 }

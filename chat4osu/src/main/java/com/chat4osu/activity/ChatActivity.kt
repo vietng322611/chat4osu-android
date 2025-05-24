@@ -1,6 +1,5 @@
 package com.chat4osu.activity
 
-import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -54,13 +53,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -69,29 +69,22 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight.Companion.W400
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.chat4osu.global.Config
-import com.chat4osu.global.IrcData
-import com.chat4osu.global.Utils.Companion.InputDialog
-import com.chat4osu.global.Utils.Companion.showToast
+import com.chat4osu.config.Config
 import com.chat4osu.ui.theme.Black
 import com.chat4osu.ui.theme.Chat4osuTheme
 import com.chat4osu.ui.theme.DarkBlue
-import com.chat4osu.ui.theme.DarkPurple
 import com.chat4osu.ui.theme.DarkWhite
-import com.chat4osu.ui.theme.LightBlue
 import com.chat4osu.ui.theme.WhiteWhite
+import com.chat4osu.utils.Utils.Companion.InputDialog
+import com.chat4osu.utils.Utils.Companion.showToast
 import com.chat4osu.viewmodel.ChatViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -100,7 +93,6 @@ import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class ChatActivity: ComponentActivity() {
-    private lateinit var username: String
     private val chatVM: ChatViewModel by viewModels()
     private val isDarkTheme = Config.getKey("darkMode").toBoolean()
     private val textSize = Config.getKey("textSize").toInt().sp
@@ -116,36 +108,42 @@ class ChatActivity: ComponentActivity() {
         }
     }
 
-    override fun onStart() {
-        super.onStart()
-        username = IrcData.getRoot()
-    }
-
-    @Preview(apiLevel = 34)
     @Composable
     fun ChatScreen() {
         val width = LocalConfiguration.current.screenWidthDp.dp
+        val height = LocalConfiguration.current.screenHeightDp.dp
         val focusManager = LocalFocusManager.current
         val coroutineScope = rememberCoroutineScope()
 
-        val users by remember { chatVM.users }
-        val messages by remember { chatVM.messages }
+        val topBarColor = if (isDarkTheme) DarkBlue else WhiteWhite
+        val bottomColor = if (isDarkTheme) DarkBlue else WhiteWhite
+
+        val activeChat = remember { chatVM.activeChat }
+        val users = remember { chatVM.users }
+        val messages = remember { chatVM.messages }
         val msgInput = remember { mutableStateOf(TextFieldValue()) }
 
         val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
 
         val listState = rememberLazyListState()
-        val listHeightState = remember { mutableStateOf(false) }
-        val isMenuVisible = remember { mutableStateOf(false) }
+        val lazyListHeight = remember { mutableIntStateOf(0) }
+        val isHeightStable = remember { mutableStateOf(false) }
 
+        val isMenuVisible = remember { mutableStateOf(false) }
         val showDialog = remember { mutableStateOf(false) }
 
-        LaunchedEffect(messages.size, listHeightState.value) {
+        LaunchedEffect(messages.size, isHeightStable) {
             listState.animateScrollToItem(index = messages.size)
         }
 
         BackHandler {
-            navigateToActivity(SelectActivity())
+            if (drawerState.isOpen) {
+                coroutineScope.launch {
+                    drawerState.close()
+                }
+            } else {
+                endActivity(SelectActivity())
+            }
         }
 
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
@@ -153,11 +151,11 @@ class ChatActivity: ComponentActivity() {
                 drawerState = drawerState,
                 drawerContent = {
                     DrawerContent(
-                        width = width,
-                        users = users
+                        users = users,
+                        width = width
                     )
                 },
-                gesturesEnabled = false
+                gesturesEnabled = drawerState.isOpen
             ) {
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                     Column(
@@ -171,26 +169,29 @@ class ChatActivity: ComponentActivity() {
                     ) {
                         TopBar(
                             modifier = Modifier
-                                .height(95.dp)
-                                .background(if (isDarkTheme) DarkBlue else WhiteWhite)
+                                .height(height*0.1235f)
+                                .background(topBarColor)
                                 .drawBehind {
                                     drawLine(
                                         color = if (isDarkTheme) DarkWhite else Black,
                                         start = Offset(0f, size.height),
                                         end = Offset(size.width, size.height),
-                                        strokeWidth = 4f
+                                        strokeWidth = 1f
                                     )
                                 },
                             coroutineScope = coroutineScope,
                             drawerState = drawerState,
-                            chatName = chatVM.activeChat
+                            chatName = activeChat
                         )
 
                         MessageView(
                             modifier = Modifier
                                 .weight(1f)
-                                .onSizeChanged {
-                                    listHeightState.value = !listHeightState.value
+                                .onSizeChanged { size ->
+                                    if (size.height != lazyListHeight.intValue)
+                                        lazyListHeight.intValue = size.height
+                                    else
+                                        isHeightStable.value = !isHeightStable.value
                                 },
                             listState = listState,
                             messages = messages
@@ -198,7 +199,7 @@ class ChatActivity: ComponentActivity() {
 
                         Column(
                             modifier = Modifier
-                                .background(if (isDarkTheme) DarkBlue else WhiteWhite)
+                                .background(bottomColor)
                                 .padding(bottom = 5.dp)
                                 .navigationBarsPadding()
                                 .imePadding()
@@ -209,17 +210,18 @@ class ChatActivity: ComponentActivity() {
                                         color = if (isDarkTheme) DarkWhite else Black,
                                         start = Offset(0f, 0f),
                                         end = Offset(size.width, 0f),
-                                        strokeWidth = 4f
+                                        strokeWidth = 1f
                                     )
                                 },
                                 msg = msgInput,
                                 isMenuVisible = isMenuVisible,
+                                focusManager = focusManager
                             )
                             BottomMenu(
                                 modifier = Modifier.padding(8.dp),
                                 isMenuVisible = isMenuVisible,
                                 showDialog = showDialog,
-                                isLobby = IrcData.getActiveChatType() == "lobby"
+                                isLobby = chatVM.getActiveChatType() == "lobby"
                             )
                         }
                     }
@@ -248,7 +250,7 @@ class ChatActivity: ComponentActivity() {
     }
 
     @Composable
-    fun DrawerContent(width: Dp, users: List<String>) {
+    fun DrawerContent(users: List<String>, width: Dp) {
         return CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
             ModalDrawerSheet(
                 modifier = Modifier.width(width / 2)
@@ -264,12 +266,14 @@ class ChatActivity: ComponentActivity() {
                         .padding(5.dp),
                 ) {
                     items(users) { text ->
-                        Text(
-                            text = text,
-                            fontSize = 15.sp,
-                            maxLines = Int.MAX_VALUE,
-                            overflow = TextOverflow.Visible
-                        )
+                        SelectionContainer {
+                            Text(
+                                text = text,
+                                fontSize = 15.sp,
+                                maxLines = Int.MAX_VALUE,
+                                overflow = TextOverflow.Visible
+                            )
+                        }
                     }
                 }
             }
@@ -290,7 +294,7 @@ class ChatActivity: ComponentActivity() {
             IconButton(
                 modifier = Modifier.padding(bottom = 5.dp),
                 onClick = {
-                    navigateToActivity(SelectActivity())
+                    endActivity(SelectActivity())
                 },
                 content = {
                     Icon(
@@ -314,7 +318,7 @@ class ChatActivity: ComponentActivity() {
                 )
             )
 
-            if (IrcData.getActiveChatType() != "DM") {
+            if (chatVM.getActiveChatType() != "DM") {
                 IconButton(
                     onClick = {
                         chatVM.fetchUserList()
@@ -341,7 +345,7 @@ class ChatActivity: ComponentActivity() {
     fun MessageView(
         modifier: Modifier = Modifier,
         listState: LazyListState,
-        messages: List<String>
+        messages: List<AnnotatedString>
     ) {
         return LazyColumn(
             modifier = modifier,
@@ -351,7 +355,7 @@ class ChatActivity: ComponentActivity() {
                 items(messages) { text ->
                     SelectionContainer {
                         Text(
-                            text = buildString(text, isDarkTheme),
+                            text = text,
                             modifier = Modifier.padding(4.dp),
                             fontSize = textSize,
                             fontWeight = W400,
@@ -368,7 +372,8 @@ class ChatActivity: ComponentActivity() {
     fun BottomBar(
         modifier: Modifier = Modifier,
         msg: MutableState<TextFieldValue>,
-        isMenuVisible: MutableState<Boolean>
+        isMenuVisible: MutableState<Boolean>,
+        focusManager: FocusManager
     ) {
         Row(
             modifier = modifier,
@@ -401,8 +406,9 @@ class ChatActivity: ComponentActivity() {
             )
             IconButton(
                 onClick = {
-                    IrcData.readInput(msg.value.text)
+                    chatVM.readInput(msg.value.text)
                     msg.value = TextFieldValue()
+                    focusManager.clearFocus()
                 },
                 enabled = msg.value.text.isNotEmpty(),
                 content = {
@@ -441,25 +447,13 @@ class ChatActivity: ComponentActivity() {
                         icon = Icons.Filled.Add
                     )
                     ButtonWithDescription(
-                        onClick = {
-                            val path: String? = chatVM.saveMatchData()
-                            if (path == null)
-                                showToast(this@ChatActivity, "Failed to save match data")
-                            else
-                                showToast(this@ChatActivity, "Match data saved at: $path")
-                        },
+                        onClick = { chatVM.saveMatchData(this@ChatActivity) },
                         description = "Save match",
                         icon = Icons.Filled.Download
                     )
                 }
                 ButtonWithDescription(
-                    onClick = {
-                        val path: String? = chatVM.saveChatLog()
-                        if (path == null)
-                            showToast(this@ChatActivity, "Failed to save chat log")
-                        else
-                            showToast(this@ChatActivity, "Chat log saved at: $path")
-                    },
+                    onClick = { chatVM.saveChatLog(this@ChatActivity) },
                     description = "Save log",
                     icon = Icons.Filled.Save
                 )
@@ -498,33 +492,15 @@ class ChatActivity: ComponentActivity() {
         }
     }
 
-    @SuppressLint("SimpleDateFormat")
-    private fun buildString(text: String, isDarkTheme: Boolean): AnnotatedString {
-        val textList = text.split(" ").toMutableList()
-        val name: String = textList[1].replace(":", "")
-        val message = textList.subList(2, textList.size).joinToString(" ")
-        val nameColor = if (name == username) LightBlue else Color(0xFF466E05)
-        val colorByTheme = if (isDarkTheme) DarkWhite else Black
-        val messageColor = if (
-                message.contains(username) ||
-                message.contains(username.replace("_", " "))
-            ) DarkPurple else colorByTheme
-        return buildAnnotatedString {
-            withStyle(style = SpanStyle(color = colorByTheme)) {
-                append(textList[0])
-            }
-            withStyle(style = SpanStyle(color = nameColor, fontWeight = W400)) {
-                append(" $name: ")
-            }
-            withStyle(style = SpanStyle(color = messageColor)) {
-                append(message)
-            }
-        }
-    }
-
-    private fun navigateToActivity(activity: ComponentActivity) {
+    private fun endActivity(activity: ComponentActivity) {
+        chatVM.stopListening()
         val intent = Intent(this, activity::class.java)
         startActivity(intent)
         finish()
     }
+
+//    private fun navigateToActivity(activity: ComponentActivity) {
+//        val intent = Intent(this, activity::class.java)
+//        startActivity(intent)
+//    }
 }

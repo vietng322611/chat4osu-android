@@ -43,8 +43,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.chat4osu.R
-import com.chat4osu.global.Config
-import com.chat4osu.global.Utils.Companion.showToast
+import com.chat4osu.config.Config
+import com.chat4osu.utils.Utils.Companion.showToast
 import com.chat4osu.ui.theme.Black
 import com.chat4osu.ui.theme.Chat4osuTheme
 import com.chat4osu.ui.theme.DarkGray
@@ -235,7 +235,7 @@ class LoginActivity : ComponentActivity() {
 
                         is LoginViewModel.LoginEvent.Success -> {
                             showToast(this@LoginActivity, "Login Successful.")
-                            navigateToSelect()
+                            endActivity()
                         }
                     }
                 }
@@ -243,7 +243,7 @@ class LoginActivity : ComponentActivity() {
         }
     }
 
-    private fun navigateToSelect() {
+    private fun endActivity() {
         val intent = Intent(this, SelectActivity::class.java)
         startActivity(intent)
         finish()

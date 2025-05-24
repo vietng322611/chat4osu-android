@@ -46,7 +46,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.chat4osu.global.Config
+import com.chat4osu.config.Config
 import com.chat4osu.ui.theme.Black
 import com.chat4osu.ui.theme.Chat4osuTheme
 import com.chat4osu.ui.theme.DarkWhite
@@ -54,7 +54,7 @@ import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class SettingActivity : ComponentActivity() {
-    private var darkTheme = mutableStateOf(false)
+    private var isDarkTheme = mutableStateOf(false)
     private var saveCred = mutableStateOf(false)
     private var textSize = mutableIntStateOf(15)
 
@@ -62,12 +62,12 @@ class SettingActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
-        darkTheme.value = Config.getKey("darkMode").toBoolean()
+        isDarkTheme.value = Config.getKey("darkMode").toBoolean()
         saveCred.value = Config.getKey("saveCred").toBoolean()
         textSize.intValue = Config.getKey("textSize").toInt()
 
         setContent {
-            Chat4osuTheme(isDarkMode = darkTheme.value) {
+            Chat4osuTheme(isDarkMode = isDarkTheme.value) {
                 SettingsScreen()
             }
         }
@@ -81,7 +81,7 @@ class SettingActivity : ComponentActivity() {
 
         BackHandler {
             saveConfig()
-            navigateToActivity(SelectActivity())
+            endActivity(SelectActivity())
         }
 
         Scaffold(
@@ -90,7 +90,7 @@ class SettingActivity : ComponentActivity() {
                     modifier = Modifier
                         .drawBehind {
                             drawLine(
-                                color = if (darkTheme.value) DarkWhite else Black,
+                                color = if (isDarkTheme.value) DarkWhite else Black,
                                 start = Offset(0f, size.height),
                                 end = Offset(size.width, size.height),
                                 strokeWidth = 4f
@@ -112,7 +112,7 @@ class SettingActivity : ComponentActivity() {
                     navigationIcon = {
                         IconButton(onClick = {
                             saveConfig()
-                            navigateToActivity(SelectActivity())
+                            endActivity(SelectActivity())
                         }) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -122,7 +122,6 @@ class SettingActivity : ComponentActivity() {
                     }
                 )
             },
-
         ) { innerPadding ->
             Column (
                 modifier = Modifier
@@ -141,8 +140,8 @@ class SettingActivity : ComponentActivity() {
                 ) {
                     Text("Enable DarkMode:")
                     Checkbox(
-                        checked = darkTheme.value,
-                        onCheckedChange = { darkTheme.value = it }
+                        checked = isDarkTheme.value,
+                        onCheckedChange = { isDarkTheme.value = it }
                     )
                 }
 
@@ -173,7 +172,6 @@ class SettingActivity : ComponentActivity() {
                                     textSize.intValue = 15
                                 else if (it.text.toInt() > 18) {
                                     textSize.intValue = 18
-                                    textSizeInput = TextFieldValue("18")
                                 } else
                                     textSize.intValue = it.text.toInt()
                             },
@@ -193,12 +191,12 @@ class SettingActivity : ComponentActivity() {
 
     private fun saveConfig() {
         val context = application
-        Config.writeToConfig(context, "darkMode", darkTheme.value.toString())
+        Config.writeToConfig(context, "darkMode", isDarkTheme.value.toString())
         Config.writeToConfig(context, "saveCred", saveCred.value.toString())
         Config.writeToConfig(context, "textSize", textSize.intValue.toString())
     }
 
-    private fun navigateToActivity(activity: ComponentActivity) {
+    private fun endActivity(activity: ComponentActivity) {
         val intent = Intent(this, activity::class.java)
         startActivity(intent)
         finish()

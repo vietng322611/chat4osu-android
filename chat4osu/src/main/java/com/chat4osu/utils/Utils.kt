@@ -1,6 +1,8 @@
-package com.chat4osu.global
+package com.chat4osu.utils
 
 import android.content.Context
+import android.os.Environment
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.AlertDialog
@@ -14,6 +16,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.TextFieldValue
+import java.io.File
+import java.io.FileOutputStream
+import java.io.IOException
 
 class Utils {
     companion object {
@@ -58,6 +63,51 @@ class Utils {
                     }
                 }
             )
+        }
+
+        fun saveFile(filename: String, content: String, caller: String): String? {
+            val folder = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+            val file = File(folder, "$filename.log")
+            var fos: FileOutputStream? = null
+            try {
+                fos = FileOutputStream(file)
+                fos.write(content.toByteArray())
+                fos.flush()
+                fos.close()
+            } catch (e: Exception) {
+                Log.e("Utils", "$caller: ${e.message}")
+                return null
+            } finally {
+                if (fos != null) {
+                    try {
+                        fos.close()
+                    } catch (e: IOException) {
+                        Log.e("Utils", "$caller: Error closing output stream $e")
+                    }
+                }
+            }
+
+            return "$folder/$filename.log"
+        }
+
+        fun handleAction(function: Any, args: List<Any>) {
+            val method = function.javaClass.methods.firstOrNull { it.name == "invoke" } ?: return
+            val params = method.parameters
+
+            val convertedArgs = params.mapIndexed { index, param ->
+                when {
+                    index >= args.size -> null
+                    param.type == Int::class.java -> args[index].toString().toInt()
+                    param.type == Char::class.java -> args[index].toString()[0]
+                    else -> args[index]
+                }
+            }.toTypedArray()
+
+            try {
+                method.invoke(function, *convertedArgs)
+            } catch (e: Exception) {
+                println("Error invoking function: ${e.message}")
+            }
         }
     }
 }

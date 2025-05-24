@@ -5,8 +5,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
-import com.chat4osu.global.Config
-import com.chat4osu.global.IrcData
+import com.chat4osu.config.Config
+import com.chat4osu.services.ChatService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -14,7 +14,10 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class LoginViewModel @Inject constructor(application: Application) : AndroidViewModel(application) {
+class LoginViewModel @Inject constructor(
+    application: Application,
+    private val chatService: ChatService,
+) : AndroidViewModel(application) {
     private val context = getApplication<Application>()
 
     private val _loginEvent = MutableSharedFlow<LoginEvent>()
@@ -46,7 +49,7 @@ class LoginViewModel @Inject constructor(application: Application) : AndroidView
                 _loginEvent.emit(LoginEvent.ErrorInvalidInput)
             }
             else {
-                val code: Int = IrcData.connect(username, password)
+                val code: Int = chatService.connect(username, password)
                 if (code == 0) {
                     Config.writeToConfig(context, "username", trimmedUsername, !saveCred)
                     Config.writeToConfig(context, "password", trimmedPassword, !saveCred)

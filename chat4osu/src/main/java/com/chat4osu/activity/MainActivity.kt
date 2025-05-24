@@ -4,7 +4,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
-import com.chat4osu.global.Config
+import com.chat4osu.config.Config
 import dagger.hilt.android.AndroidEntryPoint
 import java.io.File
 

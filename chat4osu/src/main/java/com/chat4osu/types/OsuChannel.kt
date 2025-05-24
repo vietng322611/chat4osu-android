@@ -1,10 +1,9 @@
 package com.chat4osu.types
 
-import android.os.Environment
-import android.util.Log
-import java.io.File
-import java.io.FileOutputStream
-import java.io.IOException
+import com.chat4osu.utils.Utils
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -12,16 +11,17 @@ import java.util.concurrent.ConcurrentSkipListSet
 import java.util.concurrent.locks.Lock
 import java.util.concurrent.locks.ReentrantLock
 
-class Channel() {
+class OsuChannel() {
     private val lock: Lock = ReentrantLock()
 
     private lateinit var name: String
     private lateinit var type: String
+    private val scope = CoroutineScope(Dispatchers.IO)
     private var id = 0
 
     private val userList = ConcurrentSkipListSet<String>()
-    private val message = mutableListOf<String>()
-    private val messageOnStage = mutableListOf<String>()
+    private val messages = mutableListOf<String>()
+    private val onStagedMessages = mutableListOf<String>()
 
     private val patterns = listOf(
         Regex("BanchoBot : (.*) joined in slot \\d.") to { match: String -> addUser(listOf(match)) },
@@ -55,28 +55,32 @@ class Channel() {
             "[%s] %s: %s",
             currentTimeStamp, data[2], data[3]
         )
+        addMessage(message)
+        parseAction(message)
+    }
 
-        updateMessage(message)
-
-        for ((pattern, action) in patterns) {
-            if (!pattern.matches(message)) continue
-
-            val match = pattern.find(message)
-            if (match != null) {
-                action(match.groupValues[1])
-                return
+    private fun addMessage(message: String) {
+        scope.launch {
+            synchronized(lock) {
+                messages.add(message)
+                onStagedMessages.add(message)
             }
         }
     }
 
-    private fun updateMessage(message: String) {
-        lock.lock()
-        try {
-            this.message.add(message)
-            messageOnStage.add(message)
-        } finally {
-            lock.unlock()
+    private fun parseAction(message: String) {
+        scope.launch {
+            for ((pattern, action) in patterns) {
+                if (!pattern.matches(message)) continue
+
+                val match = pattern.find(message)
+                if (match != null) {
+                    action(match.groupValues[1])
+                    return@launch
+                }
+            }
         }
+
     }
 
     fun addUser(name: List<String>) {
@@ -87,41 +91,23 @@ class Channel() {
         userList.remove(name)
     }
 
-    fun pullMessage(): List<String> {
-        val ret = messageOnStage.toMutableList()
-        messageOnStage.clear()
-        return ret
+    fun getStagedMessages(): List<String> {
+        synchronized(lock) {
+            val result = onStagedMessages.toList()
+            onStagedMessages.clear()
+            return result
+        }
     }
 
-    fun pullAllMessage(): List<String> {
-        val ret = message.toMutableList()
-        return ret
+    fun getMessages(): List<String> {
+        synchronized(lock) {
+            val result = messages.toMutableList()
+            return result
+        }
     }
 
     fun archiveChat(): String? {
-        val folder = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-        val file = File(folder, "$name.log")
-        var fos: FileOutputStream? = null
-        try {
-            fos = FileOutputStream(file)
-            val content = message.joinToString("\n")
-            fos.write(content.toByteArray())
-            fos.flush()
-            fos.close()
-        } catch (e: Exception) {
-            Log.e("Channel", "archiveChat: ${e.message}")
-            return null
-        } finally {
-            if (fos != null) {
-                try {
-                    fos.close()
-                } catch (e: IOException) {
-                    Log.e("Channel", "archiveChat: Error closing output stream")
-                }
-            }
-        }
-
-        return "$folder/$name.log"
+        return Utils.saveFile(name, messages.joinToString("\n"), "archiveChat")
     }
 
     companion object {
